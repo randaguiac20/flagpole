@@ -18,7 +18,8 @@ cleanup() {
   for pid in "${pids[@]:-}"; do kill "$pid" 2>/dev/null || true; done
   echo "== stopped (Dex is still running: docker compose -f docker-compose.dev.yaml down)"
 }
-trap cleanup EXIT INT TERM
+# EXIT alone: INT and TERM both end in EXIT, and trapping all three ran cleanup twice.
+trap cleanup EXIT
 
 echo "== identity provider on :$DEX_PORT"
 if ! curl -sf "http://localhost:$DEX_PORT/dex/.well-known/openid-configuration" >/dev/null 2>&1; then
