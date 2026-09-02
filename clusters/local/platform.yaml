@@ -1,8 +1,12 @@
 # Reconciles platform/ into the cluster. Spec: 005-platform-delivery FR-005, FR-007.
 #
-# One unit rather than four: the components order themselves by readiness (the issuer's Certificate
-# cannot be created before cert-manager's custom resources exist, and Flux retries until it can), and
-# four units would mean four dependsOn edges to keep in step with one directory.
+# The controllers only. The certificate authority is a second unit that depends on this one.
+#
+# The first attempt put both here, reasoning that Flux would retry until cert-manager's custom
+# resources existed. The cluster disproved it: kustomize-controller dry-runs the entire set before
+# applying any of it, so the unknown Certificate kind aborted the apply that would have installed
+# cert-manager — a deadlock, not a delay. A dependsOn edge is the cost of using a controller's own
+# custom resources in the same repository that installs the controller.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

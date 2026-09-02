@@ -15,6 +15,7 @@ spec:
   wait: true
   dependsOn:
     - name: platform
+    - name: platform-issuer
   sourceRef:
     kind: GitRepository
     name: flux-system

@@ -10,6 +10,7 @@
     "kustomizations": [
       "flux-system",
       "platform",
+      "platform-issuer",
       "flagpole-dev",
       "flagpole-prod"
     ],

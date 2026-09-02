@@ -1,10 +1,11 @@
-# The platform: everything every environment depends on and no environment owns.
-# Spec: 005-platform-delivery (data-model.md). Ordering between these is expressed by the
-# Kustomization in clusters/local/platform.yaml, not here.
+# The platform controllers. Spec: 005-platform-delivery (data-model.md).
+#
+# The issuer is NOT here. It uses custom resources that cert-manager installs, and Flux dry-runs a
+# Kustomization's whole set before applying any of it — so one unknown kind aborts the apply, and
+# cert-manager could never install to provide the kind. See clusters/local/platform-issuer.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - traefik/release.yaml
   - cert-manager/release.yaml
-  - issuer/issuer.yaml
   - dex/release.yaml

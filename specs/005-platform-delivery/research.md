@@ -123,6 +123,24 @@ current rather than what was fashionable.
   (a webhook and its certificate, to restate a standard that ships with Kubernetes); no network
   policy (the isolation the user asked for would be a claim, not a control).
 
+## E9a — Why the platform is two units, not one (found by running it)
+
+- **Decision**: `platform` installs the controllers; `platform-issuer` creates the certificate
+  authority and depends on it. The application units depend on both.
+- **Rationale**: The first attempt put the issuer in with the controllers, on the reasoning that Flux
+  would retry until cert-manager's custom resources existed. The cluster disproved it in the first
+  reconciliation: kustomize-controller dry-runs a Kustomization's **entire** set before applying any
+  of it, so the unknown `Certificate` and `ClusterIssuer` kinds aborted the very apply that would
+  have installed cert-manager. Nothing was created, and no amount of retrying could change that — a
+  deadlock, not a delay.
+- **Alternatives**: a `dependsOn` edge per component (four edges to keep in step with one directory,
+  and only this one edge is load-bearing); relying on Flux's retry (what was tried, and what failed);
+  installing cert-manager outside git (would take the ingress certificates out of GitOps, which is
+  most of what this feature is for).
+- **The general rule**: whenever a repository both installs a controller and uses that controller's
+  custom resources, the two need separate reconciliation units. This is worth knowing before writing
+  the manifests rather than after.
+
 ## E10 — Images
 
 - **Decision**: `python:3.12-slim` for the two Python services and a `node:24-alpine` build stage

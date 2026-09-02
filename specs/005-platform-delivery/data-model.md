@@ -29,8 +29,9 @@ A named group of manifests with its own health, revision and dependencies.
 |---|---|---|---|
 | `flux-system` | `clusters/local/flux-system` | — | the controllers are ready |
 | `platform` | `platform/` | `flux-system` | every HelmRelease is ready |
-| `flagpole-dev` | `deploy/overlays/dev` | `platform` | every workload is available |
-| `flagpole-prod` | `deploy/overlays/prod` | `platform` | every workload is available |
+| `platform-issuer` | `platform/issuer/` | `platform` | the certificate authority exists |
+| `flagpole-dev` | `deploy/overlays/dev` | `platform`, `platform-issuer` | every workload is available |
+| `flagpole-prod` | `deploy/overlays/prod` | `platform`, `platform-issuer` | every workload is available |
 
 Each application unit prunes (a resource removed from the repository is removed from the cluster),
 waits for its health checks, and declares `decryption.provider: sops`.
@@ -44,7 +45,9 @@ waits for its health checks, and declares `decryption.provider: sops`.
 | Dex | `dex/dex` | 0.24.1 | sign-in and the `groups` claim both environments read |
 
 `platform/issuer/` holds the self-signed Issuer, the CA Certificate it mints, and the ClusterIssuer
-that signs each host from that CA.
+that signs each host from that CA. It is a **separate reconciliation unit** because it uses
+cert-manager's own custom resources: Flux dry-runs a unit's whole set before applying any of it, so
+an unknown kind in the same unit as the controller that defines it can never converge (research E9a).
 
 ## Encrypted secret
 
