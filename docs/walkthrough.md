@@ -21,7 +21,30 @@ hook tests: 29 passed, 0 failed
 | Edit / Write of a `.py` file | harness message: `PostToolUse hook modified … (likely a formatter)`; file reformatted by ruff | `format ruff format .claude/logs/probe_format.py` |
 | First attempt with `if: "Edit(deploy/**)"` only | Write went through, nothing logged → gotcha #5 | — |
 
-### Pending (run in a fresh session, paste output here)
+### Headless verification (`claude -p --max-turns 1`, fresh session, 2026-09-02 13:13 UTC)
+
+Prompt: "report exactly what is in your context right now …". Answer (abridged, verbatim lines):
+
+```
+Ignoring 31 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. …
+1. Memory/instruction files: …/CLAUDE.md; docs/architecture.md (imported by CLAUDE.md); …/memory/MEMORY.md (index …)
+2. Rule files loaded: .claude/rules/workflow.md only. Path-scoped rules (Python, frontend, manifests) are referenced but not loaded.
+3. Skills available: add-flag-field, api-conventions, e2e, speckit-analyze, … speckit-taskstoissues, … Note: /deploy-local and /security-scan are named in CLAUDE.md but are not in my skill list.
+4. MCP servers/tools: playwright (deferred tools mcp__playwright__browser_*…). No flagpole-mcp tools are visible.
+5. Session facts (verbatim):
+Session facts (2026-09-02 startup):
+- Branch: main | uncommitted files: 0 | active spec: none (chores on main)
+- k3d 'flagpole': cluster 'flagpole' not created (make cluster-up)
+- Flux kustomizations: n/a (no cluster)
+- SOPS age key: missing (make bootstrap creates it)
+- Dev ports: FLAGPOLE_API_PORT:18000(free) FLAGPOLE_WEB_PORT:18010(free) …
+```
+
+Reading: (2) confirms path-scoping; (3) confirms `disable-model-invocation: true` hides `/deploy-local` and `/security-scan` from the model; (4) confirms project-scope `.mcp.json` and that `flagpole-mcp` is not registered yet (feature 004); (5) is the SessionStart hook's `additionalContext`. `hooks.log` also shows `notify permission_prompt: Claude needs your permission` from the `git push` approval at 13:11:57 — the Notification hook firing for real.
+
+### Pending (run in a fresh interactive session, paste output here)
+
+- Accept the workspace trust dialog (gotcha #15), then approve the project `.mcp.json` server
 
 - `/context` — memory files, rules, skills, agents, MCP tools with token counts
 - `/hooks` — six events registered from `.claude/settings.json`
