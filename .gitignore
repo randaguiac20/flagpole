@@ -1,0 +1,41 @@
+# --- Claude Code: never commit personal or generated state (PROMPT.md §6) ---
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/logs/
+.claude/state/
+
+# --- Secrets & keys (SOPS/age): private keys never live in the repo ---
+*.agekey
+age-key*.txt
+.env
+.env.local
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+*.db
+*.sqlite3
+
+# --- Node / frontend ---
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# --- Scans & tooling output ---
+.scan-output/
+trivy-*.json
+.semgrep/
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+.DS_Store
