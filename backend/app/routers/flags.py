@@ -1,6 +1,8 @@
 """Flags: list, create, set env state. Spec: 001-flagpole-api FR-001..006, FR-014, FR-018."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
@@ -8,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth import Caller, get_caller, require_role
 from app.db import get_session
 from app.models import ENVS, AuditEntry, Flag, FlagEnvironment
-from app.schemas import Env, EnvState, ErrorOut, FlagCreate, FlagOut
+from app.schemas import FLAG_KEY_PATTERN, Env, EnvState, ErrorOut, FlagCreate, FlagOut
 
 router = APIRouter(prefix="/flags", tags=["flags"])
 ERR = {"model": ErrorOut}
@@ -67,7 +69,7 @@ def create_flag(
     responses={400: ERR, 401: ERR, 403: ERR, 404: ERR},
 )
 def set_env_state(
-    key: str,
+    key: Annotated[str, Path(pattern=FLAG_KEY_PATTERN)],
     env: Env,
     body: EnvState,
     caller: Caller = Depends(require_role("operator")),

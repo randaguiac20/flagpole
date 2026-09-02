@@ -44,7 +44,7 @@ class FlagOut(BaseModel):
 
 
 class EvaluateRequest(BaseModel):
-    flag_key: Annotated[str, Field(min_length=1, max_length=63)]
+    flag_key: Annotated[str, Field(max_length=200)]  # any string: unknown keys fail safe (FR-010)
     env: Env
     user_id: Annotated[str, Field(min_length=1, max_length=200)]
 

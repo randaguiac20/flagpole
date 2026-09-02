@@ -1,4 +1,4 @@
-"""initial
+"""initial schema. Spec: 001-flagpole-api FR-016 (data-model.md).
 
 Revision ID: 0001
 Revises:

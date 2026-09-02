@@ -21,6 +21,29 @@ def _ops(paths: dict) -> set[tuple[str, str, str]]:
     return out
 
 
+def _params(paths: dict) -> dict[tuple[str, str], str | None]:
+    out = {}
+    for path, item in paths.items():
+        ops = [op for op in item.values() if isinstance(op, dict)]
+        for p in item.get("parameters", []) + [q for op in ops for q in op.get("parameters", [])]:
+            if p.get("in") == "path":
+                out[(path, p["name"])] = p.get("schema", {}).get("pattern")
+    return out
+
+
+def test_component_schemas_and_path_params_match_contract(app):
+    contract = yaml.safe_load(CONTRACT.read_text())
+    generated = app.openapi()
+    names = ("Flag", "EnvState", "EvaluateRequest", "EvaluateResponse", "AuditEntry", "AuditPage")
+    aliases = {"Flag": "FlagOut", "AuditEntry": "AuditEntryOut"}
+    for name in names:
+        want = contract["components"]["schemas"][name]
+        got = generated["components"]["schemas"][aliases.get(name, name)]
+        assert set(want["properties"]) == set(got["properties"]), name
+        assert set(want.get("required", [])) == set(got.get("required", [])), name
+    assert _params(contract["paths"]) == _params(generated["paths"])
+
+
 def test_generated_schema_matches_contract(app):
     contract = _ops(yaml.safe_load(CONTRACT.read_text())["paths"])
     generated = _ops(app.openapi()["paths"])

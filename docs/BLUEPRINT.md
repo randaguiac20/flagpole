@@ -23,3 +23,16 @@ specify init --here --force --non-interactive --integration claude --script sh
 Then, with Claude: write `.gitignore`, `.env.example`, `scripts/ports.sh`, `CLAUDE.md` + `docs/architecture.md`, `CLAUDE.local.md.example`, `.claude/rules/` (4), `.claude/hooks/` (7 scripts + `lib.sh` + `tests/run.sh`), `Makefile`, `.claude/agents/` (4), `.claude/skills/` (5), `.mcp.json`, `claude-setup/`, `.claude/settings.local.json.example`, then `.claude/settings.json` last (hooks go live on save). Verify: `make test-hooks`; probe the guards (see `docs/walkthrough.md`). Constitution: `/speckit-constitution <principles>` (in a restarted session; in the authoring session the skill's steps were followed by hand, gotcha #6). Decision records + `docs/claude-code/*.md` + `docs/{gotchas,anti-patterns,ports}.md`. Commit on `main` with conventional commits.
 
 Restart Claude Code, then run `/context`, `/hooks`, `/mcp`, `/agents`, `/memory` and paste into `docs/walkthrough.md`.
+
+## Phase 3 — feature 001-flagpole-api (SDD loop, branch `001-flagpole-api`)
+
+```
+/speckit-specify 001-flagpole-api: <the section-4.1 description of flags, environments, evaluation, endpoints, roles, audit, seed, non-goals> Use the GIT_BRANCH_NAME 001-flagpole-api.
+git switch -c 001-flagpole-api            # v1.0.3's script names the branch but does not create it
+/speckit-clarify                          # answer the 4 questions (recommended answers were used)
+/speckit-plan <technical context: Python 3.12/uv, FastAPI, SQLAlchemy 2 + Alembic, SQLite/PostgreSQL, PyJWT key resolver, instrumentator, layout>
+/speckit-tasks
+/speckit-analyze                          # apply findings spec-first, commit
+/speckit-implement                        # tests first per story; `make test-fast` green
+```
+Then smoke-run uvicorn on 18000 (quickstart.md), run the `code-reviewer` agent on the branch, fix findings, merge to `main` (fast-forward).

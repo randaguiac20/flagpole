@@ -58,8 +58,7 @@ def settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
     return Settings(
         database_url=f"sqlite:///{db}",
         oidc_issuer=ISSUER,
-        oidc_audience=AUDIENCE,
-        oidc_jwks_url="https://test-issuer.local/dex/keys",
+        oidc_client_id=AUDIENCE,
     )
 
 

@@ -1,22 +1,21 @@
 """Application factory. Spec: 001-flagpole-api (plan §Project Structure; research R6).
 
-Run with `uvicorn app.main:create_app --factory` (Prometheus registry populated once).
+Run with `uvicorn app.main:create_app --factory`.
 """
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from prometheus_client import CollectorRegistry
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import Settings, get_settings
 from app.db import make_engine, make_sessionmaker
+from app.metrics import EVALUATIONS
 from app.routers import audit, evaluate, flags, health
-
-_instrumented = False
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    global _instrumented
     settings = settings or get_settings()
     app = FastAPI(
         title="Flagpole API",
@@ -39,7 +38,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(audit.router)
     app.include_router(health.router)
 
-    if not _instrumented:  # the prometheus registry is process-global
-        Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
-        _instrumented = True
+    # One registry per app (FR-013): no process-global state, every app gets /metrics.
+    registry = CollectorRegistry()
+    registry.register(EVALUATIONS)
+    Instrumentator(registry=registry).instrument(app).expose(
+        app, endpoint="/metrics", include_in_schema=False
+    )
     return app

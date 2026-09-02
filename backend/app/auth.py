@@ -16,6 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.config import Settings, get_settings
 
 Role = Literal["viewer", "operator"]
+OPERATOR_GROUP = "operators"  # fixed by the spec (FR-012), not configuration
 UNAUTHENTICATED = "missing or invalid token"
 FORBIDDEN = "operator role required"
 
@@ -52,7 +53,7 @@ def get_app_settings(request: Request) -> Settings:
 
 
 def get_key_resolver(settings: Settings = Depends(get_app_settings)) -> KeyResolver:
-    return _default_resolver(settings.oidc_jwks_url)
+    return _default_resolver(settings.oidc_jwks_url or "")
 
 
 _bearer = HTTPBearer(auto_error=False)
@@ -72,14 +73,14 @@ def get_caller(
             token,
             key,
             algorithms=["RS256"],
-            audience=settings.oidc_audience,
+            audience=settings.oidc_client_id,
             issuer=settings.oidc_issuer,
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
     except (jwt.PyJWTError, ValueError) as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, UNAUTHENTICATED) from exc
     groups = claims.get("groups") or []
-    role: Role = "operator" if settings.operator_group in groups else "viewer"
+    role: Role = "operator" if OPERATOR_GROUP in groups else "viewer"
     identity = claims.get("email") or claims["sub"]
     return Caller(identity=identity, role=role)
 

@@ -78,7 +78,7 @@
 - [X] T027 Make T024–T026 green; run `uv run ruff check --fix && uv run ruff format`, `uv run pytest -q` (all green), and time the evaluate endpoint (`pytest --durations`) to confirm SC-006
 - [X] T028 [P] Add `docs/dependencies.md` rows for every backend dependency (name, version, why, source), and `make test`/`make test-fast` already pick up `backend/pyproject.toml`
 - [X] T029 [P] Update `specs/001-flagpole-api/quickstart.md` with the real commands/outputs observed, and `docs/walkthrough.md` with the `/add-flag-field`-free path (this feature) and the `code-reviewer` run
-- [ ] T030 Run the `code-reviewer` agent on the branch diff against the spec and rules; fix findings; conventional commits carry `Spec: 001-flagpole-api`
+- [X] T030 Run the `code-reviewer` agent on the branch diff against the spec and rules; fix findings; conventional commits carry `Spec: 001-flagpole-api`
 
 ## Dependencies
 

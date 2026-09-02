@@ -30,7 +30,7 @@ def main() -> None:
     with make_sessionmaker(make_engine(get_settings().database_url))() as session:
         created = ensure_seed(session)
         session.commit()
-    print("seeded new_banner" if created else "seed already present")
+    log.info("seeded new_banner" if created else "seed already present")
 
 
 if __name__ == "__main__":

@@ -54,3 +54,18 @@ Reading: (2) confirms path-scoping; (3) confirms `disable-model-invocation: true
 - `InstructionsLoaded`: copy the hook block from `.claude/settings.local.json.example`, start a session, read `backend/…py` after Phase 3, show `path_glob_match` in `.claude/logs/instructions-loaded.log`
 - SessionStart: the "Session facts" reminder at the top of a new session
 - `/speckit-constitution` re-run: reports no changes (constitution v1.0.0 already written)
+
+## Phase 3 — feature 001-flagpole-api via the SDD loop (2026-09-02)
+
+| Step | Invocation | What happened (real output) |
+|---|---|---|
+| specify | `/speckit-specify 001-flagpole-api: …` | `create-new-feature.sh --json --number 1 --short-name flagpole-api` → `{"BRANCH_NAME":"001-flagpole-api","SPEC_FILE":".../specs/001-flagpole-api/spec.md","FEATURE_NUM":"001"}`; the script does not create the branch in v1.0.3 (`git switch -c 001-flagpole-api` by hand). Spec: 4 stories, 17 FRs, 7 SCs, 0 `[NEEDS CLARIFICATION]`; `checklists/requirements.md` 18/18. |
+| clarify | `/speckit-clarify` | 4 questions (test auth, consumer auth, audit filter, concurrency), all answered "recommended". Spec gained `## Clarifications`, FR-007 filter, FR-011 "no switch that disables validation", FR-018 last-write-wins. |
+| plan | `/speckit-plan <tech context>` | `setup-plan.sh --json`; plan.md (Constitution Check: 5/5 PASS), research.md (R1 injectable key resolver … R6 error shape), data-model.md, quickstart.md, contracts/openapi.yaml. |
+| tasks | `/speckit-tasks` | 30 tasks, tests-first per story, 7 parallel groups. |
+| analyze | `/speckit-analyze` | 0 CRITICAL, 1 MEDIUM (SC-006 latency vs constitution III → "measured, never asserted"), 4 LOW (naming, plan tree, contract 503, dev.sh scope). Coverage 100%. Fixes applied spec-first, committed `c648a00`. |
+| implement | `/speckit-implement` | Red → green per story. Bugs found by the tests, not by reading: `JSONResponse` argument order, audit row flushed before its flag (FK), auth reading env settings instead of the app's, module-level app stealing the Prometheus registry, one-letter test keys violating FR-014. Final: `35 passed in 1.76s`; `make test-fast` = 29 hook tests + 35 pytest. |
+| smoke | `uvicorn app.main:create_app --factory --port 18000` | `healthz {"status":"ok"}`, `readyz {"status":"ok"}`, `/flags` without token → 401, `/evaluate` without token → 401, openapi paths `["/audit","/evaluate","/flags","/flags/{key}/env/{env}","/healthz","/readyz"]`, 100 `http_*` metric lines. Seed twice: `seeded new_banner` then `seed already present`. |
+| review | `code-reviewer` (general-purpose agent following the definition, gotcha #17) | `Verdict: request-changes`, 2 medium + 9 low: `print` in seed, `oidc_audience`/hard-coded JWKS vs `.env.example`, `flag_key` bounds not in contract, PUT key pattern, env-configurable operator group, process-global metrics guard, unused `env` setting, shallow contract test, no FR-016 test, missing docstrings, uncommitted gotcha rows. All fixed in `fix(api)`: 37 tests green. |
+
+Hooks observed during implementation: the PostToolUse formatter ran on every Python file written (`ruff format` lines in `hooks.log`); the Stop gate ran `make test-fast` when backend files were dirty and blocked once with the failing-test tail while the suite was red.
