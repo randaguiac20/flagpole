@@ -18,7 +18,7 @@ A small HTTP service that stores flags with per-environment (`dev`/`prod`) state
 
 **Testing**: pytest, pytest-asyncio, httpx `AsyncClient` against the ASGI app, a temp SQLite file per test session, tokens signed with a test RSA key (see research R1). `ruff format` + `ruff check` in pre-commit/CI.
 
-**Target Platform**: Linux container (non-root, digest-pinned base, feature 005); local `uvicorn` on port 18000 (`scripts/ports.sh`)
+**Target Platform**: Linux container (non-root, digest-pinned base, feature 005); local `uvicorn` on port 18000 (`scripts/ports.sh`); `make dev` is completed by feature 002 (Dex in compose)
 
 **Project Type**: web service (one of several in a monorepo: `backend/`)
 
@@ -90,7 +90,8 @@ backend/
     ├── test_audit.py         # US3 scenarios, FR-006, FR-007
     ├── test_auth.py          # FR-011, FR-012 (401/403, groups mapping, no-email → sub)
     ├── test_health.py        # US4, FR-013
-    └── test_seed.py          # FR-015 idempotency
+    ├── test_seed.py          # FR-015 idempotency
+    └── test_contract.py      # contracts/openapi.yaml ↔ app.openapi()
 ```
 
 **Structure Decision**: single service under `backend/` (Option "web application" backend half; `frontend/` is feature 002). Routers are thin; the only domain logic lives in `evaluation.py` and the audit write inside the flags router; no repository/service layers (constitution II).

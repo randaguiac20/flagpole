@@ -66,7 +66,7 @@ paths:
   /healthz:
     get: {summary: liveness (FR-013), responses: {"200": {description: ok, content: {application/json: {schema: {$ref: "#/components/schemas/Status"}}}}}}
   /readyz:
-    get: {summary: readiness = data store reachable (FR-013), responses: {"200": {description: ready}, "503": {description: not ready}}}
+    get: {summary: readiness = data store reachable (FR-013), responses: {"200": {description: ready}, "503": {description: not ready, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}}}
   /metrics:
     get: {summary: Prometheus text format (FR-013), responses: {"200": {description: metrics, content: {text/plain: {}}}}}
 components:

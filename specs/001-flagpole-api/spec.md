@@ -106,7 +106,7 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **FR-002**: Every flag MUST have state for exactly two environments, `dev` and `prod`: an enabled switch and a rollout percentage from 0 to 100, both starting disabled/0 when the flag is created.
 - **FR-003**: Operators MUST be able to create a flag; creating a flag whose key already exists MUST be rejected as a conflict.
 - **FR-004**: Operators MUST be able to set the enabled switch and rollout percentage of one environment of one flag in a single request; values outside 0–100 or unknown environments MUST be rejected with no side effects.
-- **FR-005**: Every successful state change (FR-004) and every flag creation (FR-003) MUST append an audit entry with: who (the caller's identity from the token, email preferred, subject otherwise), when, flag key, environment (empty for creation), state before and state after.
+- **FR-005**: Every successful state change (FR-004) and every flag creation (FR-003) MUST append an audit entry with: who (the caller's identity from the token, email preferred, subject otherwise), when (field `at`), flag key, environment (empty for creation), state before and state after.
 - **FR-006**: Any authenticated user MUST be able to list all flags with both environments' state, ordered by key.
 - **FR-007**: Any authenticated user MUST be able to read the audit log newest first, paged with a default page size of 50, a maximum of 200, and a cursor on the last entry seen; an optional flag-key filter narrows the log to one flag without changing pagination.
 - **FR-008**: Any authenticated user MUST be able to evaluate a flag for an environment and a user identifier and receive an enabled decision plus a reason.
@@ -137,7 +137,7 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **SC-003**: Every write attempt by a viewer is refused and leaves no trace in the audit log (0 entries).
 - **SC-004**: Every unauthenticated request to a flag, evaluation or audit operation is refused; liveness/readiness/metrics answer without a token.
 - **SC-005**: A consumer asking about a flag that does not exist gets a safe "disabled" answer, not an error.
-- **SC-006**: Evaluation answers in under 50 ms locally (p95) so consumers can call it on every page render.
+- **SC-006**: Evaluation answers in under 50 ms locally (p95) so consumers can call it on every page render. Measured (`pytest --durations`, reported in quickstart.md), never asserted in a test (constitution III forbids timing-based assertions).
 - **SC-007**: Every functional requirement above has at least one automated test that fails when the behavior is removed.
 
 ## Assumptions
