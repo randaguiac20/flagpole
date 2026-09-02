@@ -35,6 +35,9 @@ class ServiceTokenSigner:
                 "iss": self._settings.service_issuer,
                 "sub": self._settings.service_issuer,
                 "aud": self._settings.service_audience,
+                # The environment this token is for; the flag service refuses one meant for the
+                # other environment (FR-010d).
+                "env": self._settings.consumer_env,
                 "iat": now,
                 "exp": now + TOKEN_LIFETIME_SECONDS,
             },

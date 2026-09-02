@@ -33,7 +33,7 @@ may run together.
 - [X] T013 [US1] `consumer/app/tokens.py`: sign the RS256 service token per `contracts/service-token.md` (FR-010, FR-010a, FR-010b)
 - [X] T014 [US1] `consumer/app/client.py`: one `POST /evaluate` with the bearer token and the configured timeout, returning a `Decision` (FR-002, FR-009)
 - [X] T015 [US1] `consumer/templates/base.html` + `page.html`: the banner and the decision panel, autoescaping on, inline CSS only (FR-004, FR-014)
-- [X] T016 [US1] `consumer/app/render.py` + `routers/page.py`: `GET /` with the optional `user` parameter and the default (FR-001, FR-004)
+- [X] T016 [US1] `consumer/app/routers/page.py`: `GET /` with the optional `user` parameter and the default (FR-001, FR-004). No `render.py`: the decision goes straight to the template, and a module to move it there earned nothing
 - [X] T017 [US1] `consumer/app/main.py`: `create_app()` with a per-app metrics registry, the template environment, and settings on `app.state` — the same shape as 001 (FR-011)
 
 ## Phase 4: User Story 2 — the page survives a broken flag service (P2)

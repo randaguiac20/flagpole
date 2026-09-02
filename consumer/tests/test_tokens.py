@@ -69,3 +69,53 @@ def test_the_signer_never_returns_key_material(settings: Settings, key_path: Pat
     token = ServiceTokenSigner(settings).mint()
     assert "PRIVATE KEY" not in token
     assert str(key_path) not in token
+
+
+def test_a_token_is_minted_per_call_not_cached(settings: Settings, monkeypatch) -> None:
+    """Contract rule 1. Asserted by moving the clock rather than by sleeping.
+
+    Two tokens minted in the same second are byte-identical, which is why comparing them naively
+    proves nothing — the review found the task claimed a test that did not exist.
+    """
+    import app.tokens as tokens_module
+
+    signer = ServiceTokenSigner(settings)
+    monkeypatch.setattr(tokens_module.time, "time", lambda: 1_800_000_000)
+    first = signer.mint()
+    monkeypatch.setattr(tokens_module.time, "time", lambda: 1_800_000_060)
+    second = signer.mint()
+
+    assert first != second, "a cached token would be identical a minute later"
+    assert _claims(second)["iat"] - _claims(first)["iat"] == 60
+
+
+def test_the_token_names_its_environment(settings: Settings) -> None:
+    """FR-010d: key separation alone is not the boundary between dev and prod."""
+    assert _claims(ServiceTokenSigner(settings).mint())["env"] == "dev"
+
+
+def test_the_minted_token_matches_the_written_contract(settings: Settings) -> None:
+    """The consumer's half of contracts/service-token.json.
+
+    Both services hard-coded these strings independently, so a drift in either would have left both
+    suites green and broken only at runtime (found by review).
+    """
+    import json
+    from pathlib import Path
+
+    contract = json.loads(
+        (
+            Path(__file__).resolve().parents[2]
+            / "specs/003-flagpole-consumer/contracts/service-token.json"
+        ).read_text()
+    )
+    token = ServiceTokenSigner(settings).mint()
+    claims = _claims(token)
+
+    assert jwt.get_unverified_header(token)["alg"] == contract["algorithm"]
+    assert set(contract["required_claims"]) <= set(claims)
+    assert set(contract["forbidden_claims"]).isdisjoint(claims)
+    assert claims["exp"] - claims["iat"] == contract["lifetime_seconds"]
+    assert claims["iss"] == contract["defaults"]["issuer"]
+    assert claims["sub"] == contract["defaults"]["subject"]
+    assert claims["aud"] == contract["defaults"]["audience"]

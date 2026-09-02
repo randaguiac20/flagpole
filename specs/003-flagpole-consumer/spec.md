@@ -114,6 +114,9 @@ confirm the panel reports different reasons for them.
   is to the flag service? → A: The consumer signs its own short-lived token with a private key, and the
   flag service validates it against a configured public key as a second trusted issuer alongside the
   identity provider. Service tokens carry no groups, so they hold viewer rights only.
+- Q: What stops a token minted for `dev` from being accepted by the `prod` service? → A: The token
+  names its environment and the service pins it (FR-010d). Relying on separate key pairs alone was
+  rejected: nothing in the repository enforces that they differ.
 
 This resolves FR-010 and adds FR-010a–c. It requires an amendment to feature 001, whose specification
 described exactly one trusted issuer: see `specs/001-flagpole-api/spec.md` FR-011 and FR-019.
@@ -149,6 +152,10 @@ described exactly one trusted issuer: see `specs/001-flagpole-api/spec.md` FR-01
   key is given to the flag service, and neither key is ever part of a page or a log line.
 - **FR-010b**: Each token the consumer issues MUST be short-lived and MUST identify the consumer as its
   subject, so the flag service's audit trail names the service rather than a person.
+- **FR-010d**: A service token MUST name the environment it was minted for, and the flag service MUST
+  refuse one that names a different environment than its own. Key separation alone is not the
+  boundary: nothing forces two environments to use different key pairs, so the token says which
+  environment it belongs to and the service checks it.
 - **FR-010c**: A service token MUST carry no group membership, and therefore MUST grant no more than a
   viewer can do. The consumer needs to evaluate flags and nothing else; a compromised consumer must not
   be able to change one.

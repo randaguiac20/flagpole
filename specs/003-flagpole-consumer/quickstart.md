@@ -120,3 +120,18 @@ consumer log: ReadTimeout
 ```
 
 A healthy page load costs 0.033–0.047 s, so the ceiling is a ceiling and not a delay.
+
+## After the code review
+
+The reviewer returned 15 findings, 3 of them serious, each confirmed by running a probe. All are
+fixed. Two changed the contract rather than only the code:
+
+- A service token now names its environment (`env`), and the flag service refuses one minted for a
+  different environment. Verified live: the same consumer that reads `env_disabled` from a `dev`
+  service gets `service_unavailable` and a logged `401` when that service is told it serves `prod`.
+- `contracts/service-token.json` is the machine-readable slice both suites assert against, so a
+  drift in claim names, algorithm or lifetime fails a test instead of only the demo.
+
+The bug worth naming: the consumer read the answer with `bool(body["enabled"])`, which treats the
+string `"false"` as true. Typing the response was not enough — pydantic's ordinary coercion also
+accepts `"yes"` — so the boundary uses a strict boolean, and five drifted shapes are tested.

@@ -9,16 +9,15 @@ from dataclasses import dataclass
 
 import httpx
 from fastapi import Depends, Request
+from pydantic import ValidationError
 
 from app.config import Env, Settings
+from app.schemas import EvaluateRequest, EvaluateResponse
 from app.tokens import ServiceTokenSigner
 
 logger = logging.getLogger(__name__)
 
 SERVICE_UNAVAILABLE = "service_unavailable"
-KNOWN_REASONS = frozenset(
-    {"env_disabled", "rollout_hit", "rollout_miss", "unknown_flag", SERVICE_UNAVAILABLE}
-)
 
 
 @dataclass(frozen=True)
@@ -64,43 +63,39 @@ class FlagServiceClient:
 
     async def evaluate(self, user: str) -> Decision:
         settings = self._settings
+        query = EvaluateRequest(flag_key=settings.flag_key, env=settings.consumer_env, user_id=user)
         timeout = httpx.Timeout(settings.consumer_timeout_seconds)
         try:
+            # Minting is inside the try on purpose: an unusable signing key must produce the safe
+            # page like any other failure, not a server error (found by review).
+            authorization = f"Bearer {self._signer.mint()}"
             async with httpx.AsyncClient(
                 base_url=settings.api_url, timeout=timeout, transport=self._transport
             ) as client:
                 response = await client.post(
-                    "/evaluate",
-                    json={
-                        "flag_key": settings.flag_key,
-                        "env": settings.consumer_env,
-                        "user_id": user,
-                    },
-                    headers={"Authorization": f"Bearer {self._signer.mint()}"},
+                    "/evaluate", json=query.model_dump(), headers={"Authorization": authorization}
                 )
-        except httpx.HTTPError as exc:
+        except Exception as exc:
+            # Deliberately broad: FR-007 admits no upstream condition that reaches the visitor as an
+            # error. httpx.InvalidURL is not an HTTPError, and a bad signing key raises from PyJWT.
             return _unavailable(settings, user, f"{type(exc).__name__}: {exc}")
 
         if response.status_code != 200:
             return _unavailable(settings, user, f"answered {response.status_code}")
 
         try:
-            body = response.json()
-            enabled, reason = bool(body["enabled"]), str(body["reason"])
-        except (ValueError, KeyError, TypeError) as exc:
-            return _unavailable(settings, user, f"unreadable answer: {type(exc).__name__}")
-
-        if reason not in KNOWN_REASONS:
-            # An unknown reason means the two services disagree about the contract; fail safe
-            # rather than render a decision nobody can explain.
-            return _unavailable(settings, user, f"unknown reason {reason!r}")
+            answer = EvaluateResponse.model_validate_json(response.content)
+        except ValidationError as exc:
+            # Covers an unreadable body, a missing field, a reason the contract does not name, and
+            # "false" arriving as a string where a boolean belongs.
+            return _unavailable(settings, user, f"unreadable answer: {exc.error_count()} problems")
 
         return Decision(
             flag_key=settings.flag_key,
             env=settings.consumer_env,
             user=user,
-            enabled=enabled,
-            reason=reason,
+            enabled=answer.enabled,
+            reason=answer.reason,
             from_service=True,
         )
 

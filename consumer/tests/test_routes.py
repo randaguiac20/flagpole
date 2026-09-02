@@ -40,7 +40,9 @@ def test_the_pages_are_exactly_the_documented_ones(app: FastAPI) -> None:
     assert set(app.openapi()["paths"]) == {"/", "/healthz", "/readyz"}
 
 
-def test_metrics_are_exposed(app: FastAPI) -> None:
-    """Excluded from the schema, as in 001, but it must exist."""
-    paths = {getattr(route, "path", None) for route in _walk(app.routes)}
-    assert "/metrics" in paths
+async def test_metrics_answer_unauthenticated_prometheus_text(page) -> None:
+    """page-contract.md: it must answer, not merely appear in the route table."""
+    response = await page.get("/metrics")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/plain")
+    assert "http_request" in response.text

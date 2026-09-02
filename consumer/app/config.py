@@ -27,8 +27,13 @@ class Settings(BaseSettings):
 
     @field_validator("api_url")
     @classmethod
-    def _no_trailing_slash(cls, value: str) -> str:
-        return value.rstrip("/")
+    def _must_be_an_address(cls, value: str) -> str:
+        # An address the client cannot use is a deployment mistake; say so at startup rather than
+        # turning every page load into a fail-safe render nobody can explain.
+        cleaned = value.rstrip("/")
+        if not cleaned.startswith(("http://", "https://")) or len(cleaned.split("://")[1]) == 0:
+            raise ValueError("api_url must be an http(s) address")
+        return cleaned
 
     def read_signing_key(self) -> str:
         """Read the private key.

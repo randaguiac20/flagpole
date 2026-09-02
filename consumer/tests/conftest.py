@@ -5,6 +5,7 @@ through an ASGITransport, and a timeout is a transport that raises rather than a
 """
 
 from collections.abc import AsyncIterator, Callable, Iterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +91,37 @@ def app(settings: Settings, flag_service: RecordingFlagService) -> Iterator[Fast
     )
     yield application
     application.dependency_overrides.clear()
+
+
+@pytest.fixture
+def settings_factory(key_path: Path):
+    """Settings with one field changed, for the cases that must fail at the edges."""
+
+    def make(**overrides) -> Settings:
+        base = {
+            "consumer_env": "dev",
+            "api_url": API_URL,
+            "consumer_timeout_seconds": 2.0,
+            "consumer_key_path": str(key_path),
+        }
+        return Settings(**{**base, **overrides})
+
+    return make
+
+
+@pytest.fixture
+def page_for():
+    """A client against an app built from the given settings, with the real outbound transport."""
+
+    @asynccontextmanager
+    async def build(settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
+        application = create_app(settings)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=application), base_url="http://consumer.test"
+        ) as c:
+            yield c
+
+    return build
 
 
 @pytest.fixture

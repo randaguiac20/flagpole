@@ -23,6 +23,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description="Feature flags with per-environment state and deterministic evaluation.",
     )
     app.state.settings = settings
+    # Read now, not at the first request: a service issuer configured with an unreadable key is a
+    # deployment mistake, and a container that refuses to start says so far more clearly than one
+    # that serves errors (FR-019).
+    settings.read_service_public_key()
     app.state.engine = make_engine(settings.database_url)
     app.state.sessionmaker = make_sessionmaker(app.state.engine)
 

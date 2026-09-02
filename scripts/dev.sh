@@ -43,6 +43,7 @@ scripts/ports.sh check "$API_PORT"
   export FLAGPOLE_SERVICE_ISSUER="${FLAGPOLE_SERVICE_ISSUER:-flagpole-consumer}"
   export FLAGPOLE_SERVICE_AUDIENCE="${FLAGPOLE_SERVICE_AUDIENCE:-flagpole-api}"
   export FLAGPOLE_SERVICE_PUBLIC_KEY_PATH="${FLAGPOLE_SERVICE_PUBLIC_KEY_PATH:-../consumer/.keys/service.pub}"
+  export FLAGPOLE_SERVICE_ENV="${FLAGPOLE_CONSUMER_ENV:-dev}"  # a token for the other env is refused
   uv run alembic upgrade head
   uv run python -m app.seed
   exec uv run uvicorn app.main:create_app --factory --host 127.0.0.1 --port "$API_PORT" --reload

@@ -120,7 +120,7 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **FR-016**: Data MUST survive restarts, and the schema MUST be versioned so that later features can change it without data loss.
 - **FR-017**: Errors MUST carry a stable, machine-readable message so consumers and tests can rely on it.
 - **FR-018**: Concurrent changes to the same flag environment are resolved last-write-wins; every accepted change is audited in the order it was applied, and no version token is required from callers.
-- **FR-019**: A second trusted issuer MAY be configured for services rather than people. Tokens from it MUST be validated the same way as any other, MUST carry no group membership, and therefore MUST receive viewer rights only — a service can evaluate flags and read, never write. When no service issuer is configured, the service MUST behave exactly as before. (Added by 003-flagpole-consumer.)
+- **FR-019**: A second trusted issuer MAY be configured for services rather than people. Tokens from it MUST be validated the same way as any other, MUST carry no group membership, and therefore MUST receive viewer rights only — a service can evaluate flags and read, never write. When no service issuer is configured, the service MUST behave exactly as before. A service token MUST also name the environment it was minted for, and MUST be refused when that environment differs from the one this service is configured for. (Added by 003-flagpole-consumer.)
 
 ### Amendment 2026-09-02 (from 003-flagpole-consumer)
 

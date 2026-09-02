@@ -1,5 +1,7 @@
 """The page. Spec: 003-flagpole-consumer FR-001..FR-006, FR-014 (US1, US3)."""
 
+import re
+
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -89,6 +91,8 @@ async def test_the_decision_panel_states_what_was_applied(
     """FR-005 (US3-1), every anchor in contracts/page-contract.md."""
     response = await page.get("/?user=alice@flagpole.local")
     text = response.text
+    # Anchor and value together: two independent substring checks would pass with the user rendered
+    # in the flag cell and the flag in the reason cell (found by review).
     for testid, value in (
         ("decision-flag", "new_banner"),
         ("decision-env", "dev"),
@@ -96,8 +100,7 @@ async def test_the_decision_panel_states_what_was_applied(
         ("decision-enabled", "true"),
         ("decision-reason", "rollout_hit"),
     ):
-        assert f'data-testid="{testid}"' in text
-        assert value in text
+        assert re.search(rf'data-testid="{testid}">\s*{re.escape(value)}\s*<', text), testid
 
 
 @pytest.mark.parametrize("reason", ["env_disabled", "rollout_hit", "rollout_miss", "unknown_flag"])
