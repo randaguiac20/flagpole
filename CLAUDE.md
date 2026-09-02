@@ -27,7 +27,7 @@ make scan           # pip-audit, npm audit, osv-scanner, trivy, hadolint, gitlea
 make build          # docker images, digest-pinned bases
 make cluster-up     # k3d cluster + flux bootstrap github (asks first)
 make deploy         # import images, flux reconcile, wait for Ready
-make e2e            # Playwright headless against the cluster
+make e2e            # Playwright headless; starts Dex, the API and the web server itself
 ```
 
 Per service: `cd backend && uv run pytest`, `cd frontend && npm test`, `cd mcp/flagpole-mcp && uv run pytest`.

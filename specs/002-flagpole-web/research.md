@@ -31,7 +31,12 @@ Sources fetched 2026-09-02 (npm registry, project docs, Dex source at v2.45.1).
 - **Decision**: `docker-compose.dev.yaml` runs `ghcr.io/dexidp/dex:v2.45.1` publishing container `5556` as host `18030`, config in `dex/dev-config.yaml`: `issuer: http://localhost:18030/dex`, `storage.type: memory`, `web.http: 0.0.0.0:5556`, `web.allowedOrigins: ["http://localhost:18010"]` (CORS covers `/token`, `/keys`, discovery — not `/auth`, which is a top-level navigation), `oauth2.responseTypes: ["code"]`, `oauth2.skipApprovalScreen: true`, `enablePasswordDB: true`, one `staticClients` entry with `public: true` and redirect URI `http://localhost:18010/callback`, and two `staticPasswords` with `groups`: `alice@flagpole.local` in `operators`, `bob@flagpole.local` in `viewers`.
 - **Rationale**: real PKCE locally and deterministic end-to-end runs, offline. The same users and groups appear in the cluster in feature 005.
 - **Alternatives**: pasted tokens in dev (no login path to test); cluster-only Dex (E2E blocked until 005).
-- **Note**: bcrypt hashes contain `$`, which docker compose interpolates; the config is mounted as a file (not passed through compose environment interpolation) and the hashes are written with `$$` where compose would otherwise substitute. The demo passwords are not secrets and are documented in the quickstart.
+- **Note**: bcrypt hashes contain `$`. The config is bind-mounted as a file, so compose never interpolates it and the hashes are written with a single `$`, exactly as `htpasswd` produced them. The demo passwords are not secrets and are documented in the quickstart.
+
+- **Settled by the end-to-end run**: Dex puts `groups` in the *access* token, not only the id token. The
+  browser derives the role from the id token profile while the service derives it from the bearer access
+  token, so the two could disagree; US3-1 saves successfully as `alice`, which the service only allows for
+  the `operators` group, proving the claim survives into the access token.
 
 ## F6 — Testing
 

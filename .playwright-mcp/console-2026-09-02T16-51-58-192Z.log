@@ -1,0 +1,5 @@
+[      39ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:18010/node_modules/.vite/deps/react-dom_client.js?v=202e7bbc:14335
+[   10561ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:18030/dex/auth/local/login?back=&state=iuhcfck5didmsohkufqdbgcw7:0
+[   17439ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:18010/node_modules/.vite/deps/react-dom_client.js?v=202e7bbc:14335
+[   41007ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:18030/dex/auth/local/login?back=&state=dzhwg4q7ll6biv3mq7xp26gxx:0
+[   41625ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:18010/node_modules/.vite/deps/react-dom_client.js?v=202e7bbc:14335

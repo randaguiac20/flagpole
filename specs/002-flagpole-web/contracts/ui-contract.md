@@ -18,7 +18,7 @@ The stable surface end-to-end tests and the `ui-tester` agent depend on (FR-012)
 | `flag-error-<key>` | text | the service's message after a refused save |
 | `create-key`, `create-description`, `create-submit` | inputs + button | create form; `disabled` for viewers |
 | `create-error` | text | the service's message after a refused create; `role="alert"` |
-| `viewer-hint` | text | present exactly once per page for viewers |
+| `viewer-hint` | text | present exactly once on the flags view for viewers (FR-007 scopes it there; the audit view is read-only for everyone) |
 | `audit-row-<id>` | row | one per entry |
 | `audit-filter` | input | flag key filter |
 | `audit-load-more` | button | present only when the service returned a cursor |

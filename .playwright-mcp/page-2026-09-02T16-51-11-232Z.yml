@@ -1,0 +1,48 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - heading "Flagpole" [level=1] [ref=f2e5]
+    - navigation [ref=f2e6]:
+      - button "Flags" [ref=f2e7] [cursor=pointer]
+      - button "Audit log" [ref=f2e8] [cursor=pointer]
+    - generic [ref=f2e9]: alice@flagpole.local
+    - generic [ref=f2e10]: operator
+    - button "Sign out" [ref=f2e11] [cursor=pointer]
+  - main [ref=f2e12]:
+    - tablist "Environment" [ref=f2e13]:
+      - tab "dev" [ref=f2e14] [cursor=pointer]
+      - tab "prod" [active] [selected] [ref=f2e15] [cursor=pointer]
+    - generic [ref=f2e16]:
+      - generic [ref=f2e17]:
+        - generic [ref=f2e18]:
+          - text: Key
+          - textbox "Key" [ref=f2e19]:
+            - /placeholder: new_flag_key
+        - generic [ref=f2e20]:
+          - text: Description
+          - textbox "Description" [ref=f2e21]
+        - button "Create" [disabled] [ref=f2e22]
+      - table [ref=f2e48]:
+        - caption [ref=f2e24]: Flags in prod
+        - rowgroup [ref=f2e25]:
+          - row [ref=f2e49]:
+            - columnheader "Flag" [ref=f2e27]
+            - columnheader "Description" [ref=f2e28]
+            - columnheader "Enabled (prod)" [ref=f2e50]
+            - columnheader "Rollout (prod)" [ref=f2e51]
+            - columnheader "Actions" [ref=f2e31]
+        - rowgroup [ref=f2e33]:
+          - row [ref=f2e52]:
+            - cell [ref=f2e35]:
+              - code [ref=f2e36]: new_banner
+            - cell "Demo banner used by the walkthrough" [ref=f2e37]
+            - cell [ref=f2e53]:
+              - generic [ref=f2e39]:
+                - generic [ref=f2e40]: Enabled in prod
+                - checkbox "Enabled in prod" [ref=f2e54]
+            - cell [ref=f2e55]:
+              - generic [ref=f2e43]:
+                - generic [ref=f2e44]: Rollout percent in prod
+                - spinbutton "Rollout percent in prod" [ref=f2e56]: "0"
+              - text: "%"
+            - cell [ref=f2e46]:
+              - button "Save" [disabled] [ref=f2e47]

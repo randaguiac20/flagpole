@@ -40,7 +40,7 @@
 - [X] T015 [P] [US2] `frontend/tests/flagTable.test.tsx`: rows ordered by key with key/description/enabled/rollout for the selected env; switching to `prod` re-renders every row from prod state and marks the tab `aria-selected`; API error shows `notice-error` with retry (US2-1..4, FR-005, FR-013); run red
 - [X] T016 [P] [US2] `frontend/src/components/EnvTabs.tsx` (`env-tab-dev`, `env-tab-prod`)
 - [X] T017 [US2] `frontend/src/components/FlagTable.tsx` + read-only `FlagRow` rendering; loading/error states; run T015 green
-- [X] T018 [US2] `frontend/e2e/us2-flag-table.spec.ts`: seed two flags through the API, sign in as bob, assert both rows and the tab switch
+- [X] T018 [US2] `frontend/e2e/us2-flag-table.spec.ts`: sign in as the operator, give `new_banner` different state in each environment, assert the row reflects the selected tab and switches with it (viewer coverage lives in US3-3/6, so this story does not need bob)
 
 ## Phase 5: User Story 3 — Operators change state, viewers cannot (P1)
 
