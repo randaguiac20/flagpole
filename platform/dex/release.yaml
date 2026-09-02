@@ -41,6 +41,12 @@ spec:
         kind: HelmRepository
         name: dex
         namespace: dex
+  # FR-006 requires a resource changed directly in the cluster to be put back. For a Kustomization
+  # that is the default; for a HelmRelease it is NOT — without this, Flux reconciles the *release*
+  # and leaves whatever the chart created alone, so `kubectl scale` on a chart's Deployment simply
+  # sticks. Found by scaling Traefik by hand and watching nothing happen.
+  driftDetection:
+    mode: enabled
   install:
     remediation:
       retries: 3
