@@ -89,12 +89,21 @@ while read -r ns granted; do
     bad "$ns grants the assistant operator rights: no flagpole-api to ask"
     continue
   fi
-  present="$(kubectl -n "$ns" get deploy flagpole-api \
-    -o jsonpath='{.spec.template.spec.containers[*].env[?(@.name=="FLAGPOLE_OPERATOR_SERVICE_ISSUER")].name}' 2>/dev/null)"
+  # The setting arrives through envFrom, so it lives in the ConfigMap the Deployment names, not in
+  # an inline env entry. Reading the wrong place made dev fail and — worse — made prod pass for a
+  # reason that had nothing to do with the grant.
+  cm="$(kubectl -n "$ns" get deploy flagpole-api \
+    -o jsonpath='{.spec.template.spec.containers[0].envFrom[0].configMapRef.name}' 2>/dev/null)"
+  if [[ -z "$cm" ]]; then
+    bad "$ns grants the assistant operator rights: flagpole-api names no ConfigMap"
+    continue
+  fi
+  present="$(kubectl -n "$ns" get configmap "$cm" \
+    -o jsonpath='{.data.FLAGPOLE_OPERATOR_SERVICE_ISSUER}' 2>/dev/null)"
   if { [[ "$granted" == "true" && -n "$present" ]] || [[ "$granted" == "false" && -z "$present" ]]; }; then
     ok "$ns grants the assistant operator rights: $granted"
   else
-    bad "$ns grants the assistant operator rights: expected $granted"
+    bad "$ns grants the assistant operator rights: expected $granted, found '${present:-<absent>}'"
   fi
 done < <(q '.environments[] | "\(.namespace) \(.grants_operator_to_mcp)"')
 
