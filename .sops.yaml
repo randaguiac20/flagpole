@@ -1,0 +1,12 @@
+# Which files are encrypted, and with whose key. Spec: 005-platform-delivery FR-013 (research E7).
+#
+# encrypted_regex limits encryption to the VALUES under data/stringData. Keys, names, namespaces and
+# labels stay readable, so reviewing a change to a Secret is still possible — which is the difference
+# between a secret store people use and one they work around.
+#
+# The matching PRIVATE key lives at ~/.config/sops/age/flagpole.agekey and is never committed.
+# See docs/secrets-sops.md for generating, rotating and recovering it.
+creation_rules:
+  - path_regex: ^(deploy|clusters)/.*\.(yaml|yml)$
+    encrypted_regex: ^(data|stringData)$
+    age: age1agu0nx8jekfrhpc8ez88az3spg884a5mtq97c3c57vqn8rmvv5tq5myvhn

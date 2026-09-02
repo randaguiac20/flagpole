@@ -23,3 +23,25 @@ scripts/ports.sh table          # project ports with live status
 scripts/ports.sh check 18000    # exit 1 and print the listener if busy
 scripts/ports.sh pick           # first free port in FLAGPOLE_PORT_RANGE
 ```
+
+## In the cluster (005-platform-delivery)
+
+The cluster binds only 80 and 443, through the k3d load balancer; `scripts/cluster-up.sh` checks both
+before creating anything and names the listener if either is taken. Everything else is reached by
+hostname, not by port.
+
+| Host | Serves | Namespace |
+|---|---|---|
+| `dev.flagpole.localhost` | the web app, development | `flagpole-dev` |
+| `consumer.dev.flagpole.localhost` | the consumer, development | `flagpole-dev` |
+| `prod.flagpole.localhost` | the web app, production | `flagpole-prod` |
+| `consumer.prod.flagpole.localhost` | the consumer, production | `flagpole-prod` |
+| `dex.flagpole.localhost` | sign-in, shared by both | `dex` |
+
+`*.localhost` resolves to loopback without an `/etc/hosts` entry on this machine — check with
+`getent hosts dev.flagpole.localhost`. `cluster-up` prints the fallback line to add if it does not,
+and never writes to `/etc/hosts` itself, because that needs `sudo`.
+
+The flag service, the consumer and PostgreSQL keep their usual ports **inside** the cluster (8000,
+8000 and 5432 on the Pod network). They are not published to the host: the only way in is the
+ingress, which is what makes the network policy meaningful.
