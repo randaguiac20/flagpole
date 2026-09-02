@@ -1,0 +1,42 @@
+// OIDC client. Spec: 002-flagpole-web FR-001, FR-002, FR-003 (research F1, F2).
+import { InMemoryWebStorage, UserManager, WebStorageStateStore } from "oidc-client-ts";
+import type { User } from "oidc-client-ts";
+
+export type Role = "operator" | "viewer";
+export const OPERATOR_GROUP = "operators"; // same rule as the service (FR-002)
+
+export interface Session {
+  accessToken: string;
+  identity: string;
+  role: Role;
+  expiresAt: number;
+}
+
+/** Role from the id_token's groups claim; anything else is a viewer (FR-002). */
+export function roleFromProfile(profile: Record<string, unknown>): Role {
+  const groups = (profile.groups as string[] | undefined) ?? [];
+  return groups.includes(OPERATOR_GROUP) ? "operator" : "viewer";
+}
+
+export function sessionFromUser(user: User): Session {
+  const profile = user.profile as Record<string, unknown>;
+  return {
+    accessToken: user.access_token,
+    identity: (profile.email as string | undefined) ?? (profile.sub as string),
+    role: roleFromProfile(profile),
+    expiresAt: user.expires_at ?? 0,
+  };
+}
+
+export function createUserManager(): UserManager {
+  const env = import.meta.env;
+  return new UserManager({
+    authority: env.VITE_OIDC_ISSUER ?? "http://localhost:18030/dex",
+    client_id: env.VITE_OIDC_CLIENT_ID ?? "flagpole-web",
+    redirect_uri: `${window.location.origin}/callback`,
+    scope: "openid profile email groups", // groups is required for the role (research F2)
+    // Token in memory only: never localStorage, never a cookie (FR-003).
+    userStore: new WebStorageStateStore({ store: new InMemoryWebStorage() }),
+    automaticSilentRenew: false,
+  });
+}

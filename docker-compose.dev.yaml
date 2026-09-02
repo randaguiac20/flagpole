@@ -1,0 +1,17 @@
+# Local development stack. Spec: 002-flagpole-web (research F5).
+# Only the identity provider runs here; the API and the web dev server run on the host (make dev),
+# so edits are picked up without rebuilding anything.
+services:
+  dex:
+    image: ghcr.io/dexidp/dex:v2.45.1
+    container_name: flagpole-dex-dev
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    ports:
+      - "127.0.0.1:${FLAGPOLE_DEX_PORT:-18030}:5556"
+    volumes:
+      - ./dex/dev-config.yaml:/etc/dex/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5556/dex/.well-known/openid-configuration"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

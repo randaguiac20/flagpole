@@ -69,3 +69,20 @@ Reading: (2) confirms path-scoping; (3) confirms `disable-model-invocation: true
 | review | `code-reviewer` (general-purpose agent following the definition, gotcha #17) | `Verdict: request-changes`, 2 medium + 9 low: `print` in seed, `oidc_audience`/hard-coded JWKS vs `.env.example`, `flag_key` bounds not in contract, PUT key pattern, env-configurable operator group, process-global metrics guard, unused `env` setting, shallow contract test, no FR-016 test, missing docstrings, uncommitted gotcha rows. All fixed in `fix(api)`: 37 tests green. |
 
 Hooks observed during implementation: the PostToolUse formatter ran on every Python file written (`ruff format` lines in `hooks.log`); the Stop gate ran `make test-fast` when backend files were dirty and blocked once with the failing-test tail while the suite was red.
+
+## Phase 3 — feature 002-flagpole-web via the SDD loop (2026-09-02)
+
+| Step | Invocation | What happened (real output) |
+|---|---|---|
+| specify | `/speckit-specify 002-flagpole-web: …` | Spec: 4 stories, 15 FRs, 4 SCs; `checklists/requirements.md` 18/18. |
+| clarify | `/speckit-clarify` | 3 questions (create form in scope, explicit save vs autosave, real Dex now vs stub), batched into one `AskUserQuestion` (gotcha #18). Answers: small create form, explicit per-row Save, Dex in docker compose now. |
+| plan | `/speckit-plan` | research.md F1–F6 (PKCE, token in memory only, generated types, Vite proxy, testids, Playwright webServer), `contracts/ui-contract.md` as the stable test surface. |
+| tasks / analyze | `/speckit-tasks`, `/speckit-analyze` | 30 tasks; 0 CRITICAL, findings on FR traceability, SC measurement wording, and the 005 hand-off, fixed spec-first. |
+| implement | `/speckit-implement` | Vitest first, then components. Real bugs the tests caught: jsdom cannot parse the relative `/api` base (tests use an absolute base), and React StrictMode redeemed the OIDC authorization code twice, so Dex answered `500` on the second `/token` call. Fixed by memoising the exchange per callback URL. |
+| e2e | `npx playwright test` | `9 passed (9.6s)` against a real Dex, a migrated and seeded API and the Vite dev server, all started by `playwright.config.ts`. First run failed 4 tests with `new_banner` missing: the webServer command migrated but did not seed. |
+| SC-005 | 10 consecutive runs | `9 passed` every time, 9.2–9.7 s. No retries configured (`retries: 0`), so a flake would have failed the run. |
+| contract | `data-testid` audit | Every identifier in `contracts/ui-contract.md` exists in `frontend/src`; the audit found one undocumented element (`create-error`) and it was added to the contract, since the contract says the surface is a spec change. |
+| a11y | manual pass | Errors switched from `role="status"` to `role="alert"`, the flag table gained a caption and `scope="col"` headers, and the empty actions header gained a visually hidden label. |
+| pre-commit | `git commit` | Blocked on three hooks before anything landed: `end-of-file-fixer` (auto-fixed), `check-json` on the Vite JSONC tsconfigs, and gitleaks on a comment that looked like an API key. See gotchas #19 and #20. |
+
+`npm test` stays at `8 files, 32 tests` and `make test` runs it together with `npm run api:types:check`, which regenerates the types from `specs/001-flagpole-api/contracts/openapi.yaml` and fails on any drift.

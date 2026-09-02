@@ -17,6 +17,7 @@ The stable surface end-to-end tests and the `ui-tester` agent depend on (FR-012)
 | `flag-dirty-<key>` | marker | present only when the row has unsaved edits |
 | `flag-error-<key>` | text | the service's message after a refused save |
 | `create-key`, `create-description`, `create-submit` | inputs + button | create form; `disabled` for viewers |
+| `create-error` | text | the service's message after a refused create; `role="alert"` |
 | `viewer-hint` | text | present exactly once per page for viewers |
 | `audit-row-<id>` | row | one per entry |
 | `audit-filter` | input | flag key filter |

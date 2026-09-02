@@ -39,3 +39,7 @@ trivy-*.json
 .idea/
 .vscode/
 .DS_Store
+
+# --- feature 002: local e2e artifacts ---
+backend/e2e.db
+frontend/test-results/

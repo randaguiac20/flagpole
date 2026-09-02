@@ -22,3 +22,20 @@ Demo users (local only, not secrets): `alice@flagpole.local` / `flagpole` in gro
 | US3 viewer | sign in as bob | toggle, rollout, Save and the create form are disabled; one viewer hint |
 | US3 create | key `demo_flag`, description, Create | row appears with both environments off at 0% |
 | US4 audit | open Audit, filter by `new_banner`, load older | newest first, only that flag, no duplicates |
+
+## Observed on 2026-09-02 (implementation session)
+
+```
+$ npm test                       # Vitest
+Test Files  8 passed (8)   Tests  32 passed (32)   Duration ~0.9 s
+
+$ npx playwright test            # starts API + Dex + Vite itself
+9 passed (9.4s)
+
+$ for i in $(seq 1 10); do npx playwright test; done      # SC-005
+9 passed in every run (9.2-9.7 s)
+```
+
+Measured, not asserted (constitution III): first sign-in to flag table well under the 30 s of SC-001
+(the whole 4-test sign-in spec runs in ~5 s including two full redirect round trips); a save round trip
+(SC-002) completes inside the default 5 s expectation window, typically ~100 ms locally.

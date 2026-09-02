@@ -18,9 +18,9 @@ bootstrap: ## check tools, install deps, create the age key OUTSIDE the repo, in
 dev: ## run api/web/consumer/dex locally on the ports from .env(.example)
 	@scripts/dev.sh
 
-test: test-hooks ## all unit tests (backend, consumer, mcp, frontend)
+test: test-hooks ## all unit tests + contract drift check (backend, consumer, mcp, frontend)
 	@for d in backend consumer mcp/flagpole-mcp; do [ -f $$d/pyproject.toml ] && (cd $$d && uv run pytest -q) || true; done
-	@[ -f frontend/package.json ] && (cd frontend && npm test -- --run) || true
+	@[ -f frontend/package.json ] && (cd frontend && npm run api:types:check && npm test) || true
 
 test-fast: test-hooks ## the subset the Stop hook runs (< 60 s): hook tests + python unit tests
 	@for d in backend consumer mcp/flagpole-mcp; do [ -f $$d/pyproject.toml ] && (cd $$d && uv run pytest -q -x -p no:cacheprovider) || true; done
@@ -40,8 +40,8 @@ cluster-up: ## k3d cluster (Traefik disabled) + flux bootstrap github (asks befo
 deploy: ## import images into k3d, reconcile Flux, wait for Ready
 	@scripts/deploy.sh
 
-e2e: ## Playwright headless against the cluster
-	@scripts/e2e.sh
+e2e: ## Playwright headless (starts API, Dex and the web dev server itself)
+	@cd frontend && npx playwright test $(ARGS)
 
 clean: ## remove local build/test artifacts (never the cluster, never keys)
 	@rm -rf .claude/logs/* .claude/state/* frontend/test-results frontend/playwright-report
