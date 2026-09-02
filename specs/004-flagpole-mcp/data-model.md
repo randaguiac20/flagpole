@@ -65,3 +65,4 @@ this server's own key pair. Minted per outbound call; there is no cache.
 | Setting | Environment variable | Default | Notes |
 |---|---|---|---|
 | operator service issuer | `FLAGPOLE_OPERATOR_SERVICE_ISSUER` | unset | when set, tokens from that one service issuer resolve to `operator`; refused if it names the OIDC issuer or the viewer service issuer |
+| operator service key | `FLAGPOLE_OPERATOR_SERVICE_PUBLIC_KEY_PATH` | unset | the public key for that slot; read at startup so a misconfigured deployment fails loudly |

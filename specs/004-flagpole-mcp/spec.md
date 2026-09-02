@@ -104,6 +104,10 @@ cause.
   and off by default (001 FR-020). Audit entries name `flagpole-mcp`, which is accurate — the
   assistant made the change. Holding a real operator's token was rejected: it would attribute the
   change to a person who did not make it, and would expire mid-run.
+- Q: What happens when that grant is not configured? → A: The flag service has two service slots, one
+  viewer and one operator, and a deployment decides which slot (if either) this server occupies. In
+  the viewer slot it reads and is refused writes; in neither slot its credentials are refused
+  outright. The role is a property of the slot, never of the token (FR-011a).
 
 ## Requirements *(mandatory)*
 
@@ -131,8 +135,10 @@ cause.
   arrangement as the consumer (a short-lived signed token naming its environment), with its own key
   pair rather than the consumer's.
 - **FR-011a**: The server MUST hold operator rights only because the flag service was explicitly
-  configured to grant them to its issuer (001 FR-020). It MUST work read-only when it has not been,
-  and say so when a write is refused.
+  configured to grant them to its issuer (001 FR-020). When the flag service instead trusts it as an
+  ordinary service, reads MUST work and a write MUST be refused with a message saying the server has
+  not been granted operator rights. When the flag service does not trust its issuer at all, every
+  call MUST report refused credentials, distinctly from an outage.
 - **FR-012**: The server MUST run over standard input and output, with no listening port.
 - **FR-013**: The flag service's address, the environment, and the credential paths MUST be
   configuration, with no code change needed to point it at another environment.

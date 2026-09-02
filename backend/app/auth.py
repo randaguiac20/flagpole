@@ -3,10 +3,13 @@
 There is deliberately no switch that disables validation (FR-011, clarification 2026-09-02). Tests
 inject a different KeyResolver; every other check (signature, iss, aud, exp, sub) always runs.
 
-Two issuers may be trusted (FR-019): the identity provider, for people, and optionally one service
-issuer whose tokens a service signs itself. A token is matched to an issuer by its `iss` claim and
-then verified in full against that issuer's key, issuer and audience. Service tokens carry no
-groups, so the role rule below makes them viewers without knowing that services exist.
+Several issuers may be trusted: the identity provider, for people, and up to two service issuers
+whose tokens a service signs itself (FR-019, FR-020). A token is matched to an issuer by its `iss`
+claim and then verified in full against that issuer's key, issuer and audience.
+
+A service's role comes from the *slot* its issuer occupies in this deployment's configuration —
+viewer, or the one optional operator slot — and never from a claim in its token. Groups on a service
+token are ignored, so a service cannot elevate itself by minting a different token.
 """
 
 import base64
@@ -23,7 +26,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.config import Settings, get_settings
+from app.config import ServiceSlot, Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -101,13 +104,11 @@ def get_key_resolver(settings: Settings = Depends(get_app_settings)) -> KeyResol
     return _default_resolver(settings.oidc_jwks_url or "")
 
 
-def get_service_key_resolver(
+def get_service_slots(
     settings: Settings = Depends(get_app_settings),
-) -> KeyResolver | None:
-    """The service issuer's key, or None when no service issuer is configured (FR-019)."""
-    if not settings.service_issuer or not settings.service_public_key_path:
-        return None
-    return _static_resolver(settings.service_public_key_path)
+) -> dict[str, ServiceSlot]:
+    """Trusted service issuers by name (FR-019, FR-020). Empty when none is configured."""
+    return settings.service_slots()
 
 
 def _unverified_issuer(token: str) -> str | None:
@@ -139,23 +140,25 @@ _bearer = HTTPBearer(auto_error=False)
 def get_caller(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     resolver: KeyResolver = Depends(get_key_resolver),
-    service_resolver: KeyResolver | None = Depends(get_service_key_resolver),
+    service_slots: dict[str, ServiceSlot] = Depends(get_service_slots),
     settings: Settings = Depends(get_app_settings),
 ) -> Caller:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, UNAUTHENTICATED)
     token = credentials.credentials
-    is_service = (
-        service_resolver is not None and _unverified_issuer(token) == settings.service_issuer
-    )
-    if is_service:
-        chosen, issuer, audience = (
-            service_resolver,
-            settings.service_issuer,
-            settings.service_audience,
-        )
+    slot = service_slots.get(_unverified_issuer(token) or "")
+    service_resolver = _static_resolver(slot.public_key_path) if slot else None
+    if slot and service_resolver is not None:
+        chosen, issuer, audience = service_resolver, slot.issuer, settings.service_audience
     else:
-        chosen, issuer, audience = resolver, settings.oidc_issuer, settings.oidc_client_id
+        # An issuer no slot names — including one whose key cannot be read — falls through to the
+        # identity provider's settings and is refused there.
+        slot, chosen, issuer, audience = (
+            None,
+            resolver,
+            settings.oidc_issuer,
+            settings.oidc_client_id,
+        )
     try:
         key = chosen.resolve(token)  # type: ignore[union-attr]
         claims = jwt.decode(
@@ -168,17 +171,19 @@ def get_caller(
         )
     except (jwt.PyJWTError, ValueError) as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, UNAUTHENTICATED) from exc
-    # A service token grants viewer rights whatever it claims (FR-019). Enforced here rather than
-    # trusted from the caller: the guarantee must not depend on the consumer minting its token
-    # correctly. The role rule below is still the only place a role is decided (FR-012).
-    if is_service and settings.service_env and claims.get("env") != settings.service_env:
+    if slot and settings.service_env and claims.get("env") != settings.service_env:
         # A dev token must not work against prod, whatever key it was signed with (FR-019).
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, UNAUTHENTICATED)
-    groups = [] if is_service else (claims.get("groups") or [])
-    role: Role = "operator" if OPERATOR_GROUP in groups else "viewer"
+    # A service's role is its slot's, whatever its token claims (FR-019, FR-020) — a service token
+    # never reaches the group rule at all, so it cannot elevate itself by minting a different token.
+    # This remains the only place a role is decided (FR-012).
+    if slot is not None:
+        role: Role = slot.role
+    else:
+        role = "operator" if OPERATOR_GROUP in (claims.get("groups") or []) else "viewer"
     # A service is named by its subject. Honouring an email claim here would let anything holding
-    # the consumer's key appear as a person in the audit trail (FR-010b).
-    identity = claims["sub"] if is_service else (claims.get("email") or claims["sub"])
+    # a service key appear as a person in the audit trail (FR-010b).
+    identity = claims["sub"] if slot else (claims.get("email") or claims["sub"])
     return Caller(identity=identity, role=role)
 
 

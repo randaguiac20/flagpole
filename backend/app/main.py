@@ -26,7 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Read now, not at the first request: a service issuer configured with an unreadable key is a
     # deployment mistake, and a container that refuses to start says so far more clearly than one
     # that serves errors (FR-019).
-    settings.read_service_public_key()
+    settings.read_service_public_keys()
     app.state.engine = make_engine(settings.database_url)
     app.state.sessionmaker = make_sessionmaker(app.state.engine)
 

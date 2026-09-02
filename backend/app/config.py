@@ -1,10 +1,27 @@
 """Runtime settings from FLAGPOLE_* environment variables. Spec: 001-flagpole-api (plan)."""
 
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+Role = Literal["viewer", "operator"]
+
+
+@dataclass(frozen=True)
+class ServiceSlot:
+    """A trusted service issuer and the role its tokens carry. Spec: 001-flagpole-api FR-020.
+
+    The role belongs to the slot, which is configuration, not to the token — a service cannot claim
+    its way into a role it was not given.
+    """
+
+    issuer: str
+    public_key_path: str
+    role: Role
 
 
 class Settings(BaseSettings):
@@ -24,6 +41,11 @@ class Settings(BaseSettings):
     # (FR-019): key separation alone is not a boundary anything enforces.
     service_env: str | None = None
     service_public_key_path: str | None = None
+    # The operator service slot (FR-020, added by 004). Unset in every deployment but local
+    # development and the dev overlay: it is what lets the assistant's MCP server change flag
+    # state. A token cannot put itself here; only this configuration can.
+    operator_service_issuer: str | None = None
+    operator_service_public_key_path: str | None = None
 
     @model_validator(mode="after")
     def _derive_jwks_url(self) -> "Settings":
@@ -39,11 +61,34 @@ class Settings(BaseSettings):
             raise ValueError("service_issuer must differ from oidc_issuer")
         return self
 
-    def read_service_public_key(self) -> str | None:
-        """The service issuer's public key, or None when no service issuer is configured."""
-        if not self.service_issuer or not self.service_public_key_path:
-            return None
-        return Path(self.service_public_key_path).read_text()
+    @model_validator(mode="after")
+    def _operator_slot_is_complete_and_distinct(self) -> "Settings":
+        # Half a slot is worse than none: the grant would look applied and never take effect.
+        if bool(self.operator_service_issuer) != bool(self.operator_service_public_key_path):
+            raise ValueError(
+                "operator_service_issuer and operator_service_public_key_path are set together"
+            )
+        if self.operator_service_issuer and self.operator_service_issuer in (
+            self.oidc_issuer,
+            self.service_issuer,
+        ):
+            raise ValueError("operator_service_issuer must name an issuer of its own")
+        return self
+
+    def service_slots(self) -> dict[str, ServiceSlot]:
+        """Trusted service issuers by name. An issuer absent from here is not trusted at all."""
+        slots: dict[str, ServiceSlot] = {}
+        for issuer, path, role in (
+            (self.service_issuer, self.service_public_key_path, "viewer"),
+            (self.operator_service_issuer, self.operator_service_public_key_path, "operator"),
+        ):
+            if issuer and path:
+                slots[issuer] = ServiceSlot(issuer=issuer, public_key_path=path, role=role)
+        return slots
+
+    def read_service_public_keys(self) -> list[str]:
+        """Every configured slot's public key. Raises, so a bad path stops startup (FR-019)."""
+        return [Path(slot.public_key_path).read_text() for slot in self.service_slots().values()]
 
 
 @lru_cache

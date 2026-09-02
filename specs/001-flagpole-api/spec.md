@@ -121,9 +121,11 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **FR-017**: Errors MUST carry a stable, machine-readable message so consumers and tests can rely on it.
 - **FR-018**: Concurrent changes to the same flag environment are resolved last-write-wins; every accepted change is audited in the order it was applied, and no version token is required from callers.
 - **FR-019**: A second trusted issuer MAY be configured for services rather than people. Tokens from it MUST be validated the same way as any other, MUST carry no group membership, and therefore MUST receive viewer rights only — a service can evaluate flags and read, never write. When no service issuer is configured, the service MUST behave exactly as before. A service token MUST also name the environment it was minted for, and MUST be refused when that environment differs from the one this service is configured for. (Added by 003-flagpole-consumer.)
-- **FR-020**: One named service issuer MAY be granted operator rights by configuration. It MUST be a
-  separate setting from the viewer service issuer, MUST be off unless explicitly set, and MUST be
-  refused if it names the same issuer as the viewer one. Its writes are audited like anyone's, with
+- **FR-020**: One named service issuer MAY be granted operator rights by configuration. It is a
+  second service slot with its own issuer name and its own key, distinct from the viewer service
+  slot; it MUST be off unless explicitly set, and MUST be refused if it names the same issuer as the
+  viewer slot or the identity provider. A service's role comes from the slot its issuer occupies and
+  never from a claim in its token. Its writes are audited like anyone's, with
   the service named as the actor. (Added by 004-flagpole-mcp.)
 
 ### Amendment 2026-09-02 (from 003-flagpole-consumer)

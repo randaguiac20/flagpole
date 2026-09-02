@@ -278,7 +278,7 @@ async def test_an_unsigned_token_is_refused(service_client: httpx.AsyncClient) -
     assert response.status_code == 401
 
 
-def test_service_identity_is_the_subject(service_key: rsa.RSAPrivateKey) -> None:
+def test_service_identity_is_the_subject(service_key: rsa.RSAPrivateKey, tmp_path: Path) -> None:
     """The unit that finding 7 is really about."""
     import time
 
@@ -292,8 +292,11 @@ def test_service_identity_is_the_subject(service_key: rsa.RSAPrivateKey) -> None
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     )
-    public = service_key.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    public_pem = tmp_path / "service.pub"
+    public_pem.write_bytes(
+        service_key.public_key().public_bytes(
+            serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+        )
     )
     now = int(time.time())
     token = jwt.encode(
@@ -314,6 +317,7 @@ def test_service_identity_is_the_subject(service_key: rsa.RSAPrivateKey) -> None
         oidc_client_id=AUDIENCE,
         service_issuer=SERVICE_ISSUER,
         service_audience=SERVICE_AUDIENCE,
+        service_public_key_path=str(public_pem),
     )
 
     class _Credentials:
@@ -323,7 +327,7 @@ def test_service_identity_is_the_subject(service_key: rsa.RSAPrivateKey) -> None
     caller = auth.get_caller(
         credentials=_Credentials(),  # type: ignore[arg-type]
         resolver=StaticKeyResolver(service_key.public_key()),
-        service_resolver=auth.StaticPublicKeyResolver(public.decode()),
+        service_slots=settings.service_slots(),
         settings=settings,
     )
     assert caller.identity == "flagpole-consumer"
