@@ -35,6 +35,21 @@ spec:
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {memory: 256Mi}
+        # The demo flag, so the cluster starts in the same state as the development stack. Idempotent
+        # (it returns early when the flag exists), and ordered after the migration because it needs
+        # the schema. Without it the cluster comes up correct and empty, which looks broken.
+        - name: seed
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          command: ["python", "-m", "app.seed"]
+          envFrom:
+            - configMapRef: {name: flagpole-api}
+          env:
+            - name: FLAGPOLE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: database-url}}
+          securityContext: *hardened
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
       containers:
         - name: flagpole-api
           image: ghcr.io/randaguiac20/flagpole-api:0.1.0
