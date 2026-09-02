@@ -27,7 +27,7 @@ Demo users (local only, not secrets): `alice@flagpole.local` / `flagpole` in gro
 
 ```
 $ npm test                       # Vitest
-Test Files  8 passed (8)   Tests  32 passed (32)   Duration ~0.9 s
+Test Files 10 passed (10)  Tests  44 passed (44)  Duration ~1.0 s   (32 before the review)
 
 $ npx playwright test            # starts API + Dex + Vite itself
 9 passed (9.4s)
@@ -39,3 +39,16 @@ $ for i in $(seq 1 10); do npx playwright test; done      # SC-005
 Measured, not asserted (constitution III): first sign-in to flag table well under the 30 s of SC-001
 (the whole 4-test sign-in spec runs in ~5 s including two full redirect round trips); a save round trip
 (SC-002) completes inside the default 5 s expectation window, typically ~100 ms locally.
+
+## After the code review (same day)
+
+The suite grew with the fixes and the end-to-end run now starts from a database deleted at the start
+of every run, so a fixed flag key is free each time:
+
+```
+$ make e2e                              # three consecutive runs
+9 passed (11.1s) / 9 passed (9.5s) / 9 passed (9.5s)
+
+$ FLAGPOLE_WEB_PORT=18011 make e2e      # the whole stack, Dex included, moves ports
+9 passed (9.4s)
+```
