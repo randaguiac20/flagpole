@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     oidc_issuer: str = "http://localhost:18030/dex"
     oidc_client_id: str = "flagpole-web"
     oidc_jwks_url: str | None = None
+    # A second trusted issuer for services rather than people (FR-019, added by 003).
+    # All three unset means the service behaves exactly as it did before the amendment.
+    service_issuer: str | None = None
+    service_audience: str = "flagpole-api"
+    service_public_key_path: str | None = None
 
     @model_validator(mode="after")
     def _derive_jwks_url(self) -> "Settings":

@@ -16,10 +16,10 @@ may run together.
 
 **Blocks every consumer story: without it the consumer cannot authenticate at all.**
 
-- [ ] T005 `backend/tests/test_service_token.py`: a token from the configured service issuer evaluates a flag successfully; the same token is refused (403) on `POST /flags` and on `PUT /flags/{key}/env/{env}`; a token whose `iss` is not configured is refused (401); with no service issuer configured, a service token is refused (401). **Written first and failing.** (001 FR-019, FR-010c)
-- [ ] T006 `backend/app/config.py`: optional `service_issuer`, `service_audience` (default `flagpole-api`), `service_public_key_path`; unset issuer means the previous behaviour exactly (001 FR-019)
-- [ ] T007 `backend/app/auth.py`: resolve the trusted issuer from the token's unverified `iss`, then verify in full with that issuer's key, audience and issuer pinned; unknown issuer is unauthenticated. Add a `StaticPublicKeyResolver`. The role check stays untouched and in one place (001 FR-011, FR-019)
-- [ ] T008 Run the whole 001 suite: T005 green and the existing 37 tests still green (the amendment must not change behaviour when no service issuer is configured)
+- [X] T005 `backend/tests/test_service_token.py`: a token from the configured service issuer evaluates a flag successfully; the same token is refused (403) on `POST /flags` and on `PUT /flags/{key}/env/{env}`; a token whose `iss` is not configured is refused (401); with no service issuer configured, a service token is refused (401). **Written first and failing.** (001 FR-019, FR-010c)
+- [X] T006 `backend/app/config.py`: optional `service_issuer`, `service_audience` (default `flagpole-api`), `service_public_key_path`; unset issuer means the previous behaviour exactly (001 FR-019)
+- [X] T007 `backend/app/auth.py`: resolve the trusted issuer from the token's unverified `iss`, then verify in full with that issuer's key, audience and issuer pinned; unknown issuer is unauthenticated. Add a `StaticPublicKeyResolver`. The role check stays untouched and in one place (001 FR-011, FR-019)
+- [X] T008 Run the whole 001 suite: T005 green and the existing 37 tests still green (the amendment must not change behaviour when no service issuer is configured)
 
 ## Phase 3: User Story 1 — the flag changes what a visitor sees (P1)
 
