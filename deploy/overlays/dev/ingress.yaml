@@ -1,0 +1,45 @@
+# Ingress for the dev environment. Spec: 005-platform-delivery FR-010.
+# Hosts differ per environment, so these live in the overlay rather than the base.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flagpole-web
+  annotations:
+    cert-manager.io/cluster-issuer: flagpole-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [dev.flagpole.localhost]
+      secretName: flagpole-web-tls
+  rules:
+    - host: dev.flagpole.localhost
+      http:
+        paths:
+          # The browser talks to the flag service through the same origin, so there is no CORS
+          # to configure and no second host to trust.
+          - path: /api
+            pathType: Prefix
+            backend: {service: {name: flagpole-api, port: {name: http}}}
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: flagpole-web, port: {number: 80}}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flagpole-consumer
+  annotations:
+    cert-manager.io/cluster-issuer: flagpole-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [consumer.dev.flagpole.localhost]
+      secretName: flagpole-consumer-tls
+  rules:
+    - host: consumer.dev.flagpole.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: flagpole-consumer, port: {name: http}}}

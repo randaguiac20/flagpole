@@ -1,0 +1,29 @@
+# Reconciles deploy/overlays/prod. Spec: 005-platform-delivery FR-005, FR-006, FR-007, FR-014.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flagpole-prod
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 10m
+  path: ./deploy/overlays/prod
+  # A resource removed from the repository is removed from the cluster, and one changed directly in
+  # the cluster is put back (FR-006). Both are what makes this GitOps rather than a first apply.
+  prune: true
+  wait: true
+  dependsOn:
+    - name: platform
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+  healthChecks:
+    - {apiVersion: apps/v1, kind: Deployment, name: flagpole-api, namespace: flagpole-prod}
+    - {apiVersion: apps/v1, kind: Deployment, name: flagpole-consumer, namespace: flagpole-prod}
+    - {apiVersion: apps/v1, kind: Deployment, name: flagpole-web, namespace: flagpole-prod}
+    - {apiVersion: apps/v1, kind: StatefulSet, name: postgres, namespace: flagpole-prod}

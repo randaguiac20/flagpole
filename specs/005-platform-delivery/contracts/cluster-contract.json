@@ -146,11 +146,8 @@
       },
       {
         "name": "flagpole-service-keys",
-        "per_environment": true
-      },
-      {
-        "name": "dex-clients",
-        "namespace": "dex"
+        "per_environment": true,
+        "$comment": "The consumer's signing key and both services' public keys. There is no Dex client secret: the web app is a public PKCE client (002 FR-001), so nothing secret exists to encrypt."
       }
     ]
   }

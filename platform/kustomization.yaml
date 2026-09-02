@@ -1,0 +1,10 @@
+# The platform: everything every environment depends on and no environment owns.
+# Spec: 005-platform-delivery (data-model.md). Ordering between these is expressed by the
+# Kustomization in clusters/local/platform.yaml, not here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - traefik/release.yaml
+  - cert-manager/release.yaml
+  - issuer/issuer.yaml
+  - dex/release.yaml

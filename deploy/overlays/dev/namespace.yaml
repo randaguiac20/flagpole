@@ -1,0 +1,12 @@
+# The namespace enforces the restricted standard rather than trusting each manifest to be careful:
+# a securityContext is a promise a future manifest can forget, a label rejects the Pod outright.
+# Spec: 005-platform-delivery FR-016.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flagpole-dev
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

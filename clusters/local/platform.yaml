@@ -1,0 +1,33 @@
+# Reconciles platform/ into the cluster. Spec: 005-platform-delivery FR-005, FR-007.
+#
+# One unit rather than four: the components order themselves by readiness (the issuer's Certificate
+# cannot be created before cert-manager's custom resources exist, and Flux retries until it can), and
+# four units would mean four dependsOn edges to keep in step with one directory.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform
+  namespace: flux-system
+spec:
+  interval: 30m
+  retryInterval: 1m
+  timeout: 10m
+  path: ./platform
+  prune: true          # a component removed from git is removed from the cluster (FR-006)
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: traefik
+      namespace: traefik
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: cert-manager
+      namespace: cert-manager
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: dex
+      namespace: dex

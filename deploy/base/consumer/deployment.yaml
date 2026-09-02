@@ -1,0 +1,53 @@
+# flagpole-consumer. Spec: 005-platform-delivery FR-001, FR-016, FR-020.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagpole-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: flagpole-consumer}
+  template:
+    metadata:
+      labels: {app: flagpole-consumer}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: flagpole-consumer
+          image: ghcr.io/randaguiac20/flagpole-consumer:0.1.0
+          ports:
+            - {name: http, containerPort: 8000}
+          envFrom:
+            - configMapRef: {name: flagpole-consumer}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          # Deliberately NOT dependent on the flag service (003 research C6): a readiness probe that
+          # failed during an upstream outage would remove the consumer from service precisely when
+          # its fail-safe page is what keeps the product up.
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - {name: service-keys, mountPath: /keys, readOnly: true}
+      volumes:
+        - name: service-keys
+          secret:
+            secretName: flagpole-service-keys
+            defaultMode: 0440
+            items:
+              - {key: consumer.key, path: service.key}

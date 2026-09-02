@@ -1,0 +1,45 @@
+# The production environment. Spec: 005-platform-delivery FR-008, FR-009, FR-018.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: flagpole-prod
+
+resources:
+  - namespace.yaml
+  - ../../base
+  - ingress.yaml
+  - postgres-secret.yaml
+  - service-keys-secret.yaml
+
+patches:
+  - path: replicas.yaml
+
+configMapGenerator:
+  - name: flagpole-api
+    literals:
+      - FLAGPOLE_OIDC_ISSUER=https://dex.flagpole.localhost/dex
+      - FLAGPOLE_OIDC_CLIENT_ID=flagpole-web
+      - FLAGPOLE_OIDC_JWKS_URL=http://dex.dex.svc.cluster.local:5556/dex/keys
+      - FLAGPOLE_SERVICE_ENV=prod
+      - FLAGPOLE_SERVICE_ISSUER=flagpole-consumer
+      - FLAGPOLE_SERVICE_AUDIENCE=flagpole-api
+      - FLAGPOLE_SERVICE_PUBLIC_KEY_PATH=/keys/consumer.pub
+      # NO operator slot here (FR-018). The assistant's MCP server can read this environment and
+      # cannot change it, because the grant is configuration and this configuration omits it. The
+      # absence is the control; scripts/verify-cluster.sh fails if it ever appears.
+  - name: flagpole-consumer
+    literals:
+      - FLAGPOLE_CONSUMER_ENV=prod
+      - FLAGPOLE_API_URL=http://flagpole-api.flagpole-prod.svc.cluster.local:8000
+      - FLAGPOLE_CONSUMER_TIMEOUT_SECONDS=2.0
+      - FLAGPOLE_CONSUMER_KEY_PATH=/keys/service.key
+      - FLAGPOLE_SERVICE_ISSUER=flagpole-consumer
+      - FLAGPOLE_SERVICE_AUDIENCE=flagpole-api
+  - name: flagpole-web
+    literals:
+      - FLAGPOLE_OIDC_ISSUER=https://dex.flagpole.localhost/dex
+      - FLAGPOLE_OIDC_CLIENT_ID=flagpole-web
+
+# The generated ConfigMaps carry a content hash, so a configuration change rolls the pods that
+# read it. Without this, editing a value would change nothing until something else restarted them.
+generatorOptions:
+  disableNameSuffixHash: false

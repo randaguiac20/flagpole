@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagpole-web
+spec:
+  selector: {app: flagpole-web}
+  ports:
+    - {name: http, port: 80, targetPort: http}

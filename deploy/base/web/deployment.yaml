@@ -1,0 +1,51 @@
+# flagpole-web. Spec: 005-platform-delivery FR-001, FR-011, FR-016.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagpole-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: flagpole-web}
+  template:
+    metadata:
+      labels: {app: flagpole-web}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101          # nginx-unprivileged's own user
+        runAsGroup: 101
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: flagpole-web
+          image: ghcr.io/randaguiac20/flagpole-web:0.1.0
+          ports:
+            - {name: http, containerPort: 8080}
+          # The identity provider's address is configuration, not a build-time constant (FR-011):
+          # the entrypoint writes /config.js from these. One image serves both environments.
+          envFrom:
+            - configMapRef: {name: flagpole-web}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          # nginx and the entrypoint need somewhere to write; the image itself stays read-only.
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: nginx-cache, mountPath: /var/cache/nginx}
+            - {name: nginx-run, mountPath: /var/run}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+        - {name: nginx-cache, emptyDir: {}}
+        - {name: nginx-run, emptyDir: {}}

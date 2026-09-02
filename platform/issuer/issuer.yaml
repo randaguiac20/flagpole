@@ -1,0 +1,39 @@
+# One certificate authority for the whole cluster. Spec: 005-platform-delivery FR-010 (research E3).
+#
+# No public authority will sign for *.localhost, so the choice is one local authority or none. One CA
+# means the browser trusts one certificate rather than one per host, and it demonstrates the chain a
+# real deployment would get from a public issuer.
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: flagpole-selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: flagpole-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: Flagpole local CA
+  secretName: flagpole-ca
+  duration: 8760h    # one year; this cluster is disposable and so is its authority
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: flagpole-selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: flagpole-ca
+spec:
+  ca:
+    secretName: flagpole-ca

@@ -54,11 +54,14 @@ A committed file whose structure is readable and whose values are not.
 |---|---|---|
 | `flagpole-postgres` | each environment | the database user and password |
 | `flagpole-service-keys` | each environment | the consumer's and the assistant server's public keys, and the consumer's private key |
-| `dex-clients` | `dex` | the web application's client secret |
 | `sops-age` | `flux-system` | the private key, **applied by the bootstrap script, never committed** |
 
 `.sops.yaml` encrypts `data` and `stringData` under `deploy/` and `clusters/`, and nothing else, so a
 review still shows which keys changed.
+
+Dex has **no** secret here. The web app is a public client using PKCE (002 FR-001), so there is no
+client secret to store, and the demo passwords are printed in the walkthrough — encrypting a value
+that is published anyway would teach the ceremony without the reason.
 
 ## Image
 

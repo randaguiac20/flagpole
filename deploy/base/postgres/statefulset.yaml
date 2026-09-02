@@ -1,0 +1,65 @@
+# PostgreSQL, one per environment. Spec: 005-platform-delivery FR-012a (research E5).
+#
+# A plain StatefulSet, not an operator: this is one database holding a handful of rows, and an
+# operator is a controller, its custom resources and an upgrade story. One instance per environment
+# is what makes the NetworkPolicy meaningful — a shared one would have to be reachable from both.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: {app: postgres}
+  template:
+    metadata:
+      labels: {app: postgres}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70          # the alpine image's postgres user
+        runAsGroup: 70
+        fsGroup: 70            # so the mounted volume is writable by that user
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: postgres
+          image: postgres:18-alpine@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+          ports:
+            - {name: postgres, containerPort: 5432}
+          env:
+            - name: POSTGRES_DB
+              value: flagpole
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: username}}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: password}}
+          # FR-020 covers every workload, not only the HTTP ones.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d flagpole -h 127.0.0.1"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d flagpole -h 127.0.0.1"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+            # Not read-only: PostgreSQL writes its socket and lock files outside the data volume.
+            # Named here rather than left to a default, so the exception is a decision on the record.
+            readOnlyRootFilesystem: false
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: {requests: {storage: 1Gi}}
