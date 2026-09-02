@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: Flagpole API
+  version: "0.1.0"
+  description: |
+    Feature flags with per-environment state and deterministic evaluation. Spec: 001-flagpole-api.
+    Evaluation rule (FR-009): env disabled -> enabled=false, reason=env_disabled; else
+    bucket = int(sha256("<flag_key>:<user_id>")) mod 100, enabled = bucket < rollout_percent
+    (reason rollout_hit / rollout_miss); unknown flag -> 200 {enabled:false, reason:unknown_flag}.
+    Auth: Bearer JWT from Dex (RS256, iss/aud checked). Role: groups contains "operators" -> operator, else viewer.
+    Errors: {"detail": "<stable message>"}; 400 invalid input, 401 missing or invalid token, 403 operator role required,
+    404 unknown flag (PUT only), 409 flag already exists.
+paths:
+  /flags:
+    get:
+      summary: List flags with both environments' state (FR-006)
+      security: [{bearer: []}]
+      responses:
+        "200": {description: ordered by key, content: {application/json: {schema: {type: array, items: {$ref: "#/components/schemas/Flag"}}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    post:
+      summary: Create a flag; both envs disabled at 0 (FR-003) — operator
+      security: [{bearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/FlagCreate"}}}}
+      responses:
+        "201": {description: created, content: {application/json: {schema: {$ref: "#/components/schemas/Flag"}}}}
+        "400": {$ref: "#/components/responses/Invalid"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {description: flag already exists, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+  /flags/{key}/env/{env}:
+    put:
+      summary: Set enabled + rollout for one environment; writes an audit entry (FR-004, FR-005) — operator
+      security: [{bearer: []}]
+      parameters:
+        - {name: key, in: path, required: true, schema: {type: string, pattern: "^[a-z][a-z0-9_]{1,62}$"}}
+        - {name: env, in: path, required: true, schema: {$ref: "#/components/schemas/Env"}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EnvState"}}}}
+      responses:
+        "200": {description: updated flag, content: {application/json: {schema: {$ref: "#/components/schemas/Flag"}}}}
+        "400": {$ref: "#/components/responses/Invalid"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {description: unknown flag, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+  /evaluate:
+    post:
+      summary: Evaluate a flag for a user in an environment (FR-008..010)
+      security: [{bearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EvaluateRequest"}}}}
+      responses:
+        "200": {description: decision (never 404), content: {application/json: {schema: {$ref: "#/components/schemas/EvaluateResponse"}}}}
+        "400": {$ref: "#/components/responses/Invalid"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /audit:
+    get:
+      summary: Audit log newest first, cursor-paged, optional flag filter (FR-007)
+      security: [{bearer: []}]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+        - {name: before, in: query, schema: {type: integer}, description: return entries with id < before}
+        - {name: flag_key, in: query, schema: {type: string}}
+      responses:
+        "200": {description: page, content: {application/json: {schema: {$ref: "#/components/schemas/AuditPage"}}}}
+        "400": {$ref: "#/components/responses/Invalid"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /healthz:
+    get: {summary: liveness (FR-013), responses: {"200": {description: ok, content: {application/json: {schema: {$ref: "#/components/schemas/Status"}}}}}}
+  /readyz:
+    get: {summary: readiness = data store reachable (FR-013), responses: {"200": {description: ready}, "503": {description: not ready}}}
+  /metrics:
+    get: {summary: Prometheus text format (FR-013), responses: {"200": {description: metrics, content: {text/plain: {}}}}}
+components:
+  securitySchemes:
+    bearer: {type: http, scheme: bearer, bearerFormat: JWT}
+  responses:
+    Invalid: {description: invalid input, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+    Unauthorized: {description: missing or invalid token, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+    Forbidden: {description: operator role required, content: {application/json: {schema: {$ref: "#/components/schemas/Error"}}}}
+  schemas:
+    Env: {type: string, enum: [dev, prod]}
+    Reason: {type: string, enum: [env_disabled, rollout_hit, rollout_miss, unknown_flag]}
+    Error: {type: object, required: [detail], properties: {detail: {type: string}}}
+    Status: {type: object, properties: {status: {type: string, enum: [ok]}}}
+    EnvState:
+      type: object
+      required: [enabled, rollout_percent]
+      properties:
+        enabled: {type: boolean}
+        rollout_percent: {type: integer, minimum: 0, maximum: 100}
+    FlagCreate:
+      type: object
+      required: [key]
+      properties:
+        key: {type: string, pattern: "^[a-z][a-z0-9_]{1,62}$"}
+        description: {type: string, maxLength: 200, default: ""}
+    Flag:
+      type: object
+      required: [key, description, created_at, environments]
+      properties:
+        key: {type: string}
+        description: {type: string}
+        created_at: {type: string, format: date-time}
+        environments:
+          type: object
+          required: [dev, prod]
+          properties:
+            dev: {$ref: "#/components/schemas/EnvState"}
+            prod: {$ref: "#/components/schemas/EnvState"}
+    EvaluateRequest:
+      type: object
+      required: [flag_key, env, user_id]
+      properties:
+        flag_key: {type: string}
+        env: {$ref: "#/components/schemas/Env"}
+        user_id: {type: string, minLength: 1, maxLength: 200}
+    EvaluateResponse:
+      type: object
+      required: [enabled, reason]
+      properties:
+        enabled: {type: boolean}
+        reason: {$ref: "#/components/schemas/Reason"}
+    AuditEntry:
+      type: object
+      required: [id, who, at, flag_key, env, before, after]
+      properties:
+        id: {type: integer}
+        who: {type: string}
+        at: {type: string, format: date-time}
+        flag_key: {type: string}
+        env: {oneOf: [{$ref: "#/components/schemas/Env"}, {type: "null"}]}
+        before: {oneOf: [{$ref: "#/components/schemas/EnvState"}, {type: "null"}]}
+        after: {type: object}
+    AuditPage:
+      type: object
+      required: [items, next_before]
+      properties:
+        items: {type: array, items: {$ref: "#/components/schemas/AuditEntry"}}
+        next_before: {oneOf: [{type: integer}, {type: "null"}]}
