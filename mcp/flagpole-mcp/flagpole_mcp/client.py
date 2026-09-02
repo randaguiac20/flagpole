@@ -40,7 +40,9 @@ class FlagServiceClient:
     signer: ServiceTokenSigner
     transport: httpx.BaseTransport | None = None
 
-    def _request(self, method: str, path: str, json: Any | None = None) -> Any:
+    def _request(
+        self, method: str, path: str, json: Any | None = None, flag_key: str | None = None
+    ) -> Any:
         url = self.settings.api_url.rstrip("/")
         try:
             with httpx.Client(
@@ -61,10 +63,10 @@ class FlagServiceClient:
             raise FlagServiceError(
                 UNREACHABLE, f"The flag service at {url} could not be reached."
             ) from exc
-        return self._answer(response, url)
+        return self._answer(response, url, flag_key)
 
     @staticmethod
-    def _answer(response: httpx.Response, url: str) -> Any:
+    def _answer(response: httpx.Response, url: str, flag_key: str | None = None) -> Any:
         if response.status_code == 401:
             raise FlagServiceError(
                 UNAUTHORIZED,
@@ -78,7 +80,8 @@ class FlagServiceClient:
                 "read flag state but not change it.",
             )
         if response.status_code == 404:
-            raise FlagServiceError(UNKNOWN_FLAG, "The flag service does not have that flag.")
+            named = f"a flag called {flag_key!r}" if flag_key else "that flag"
+            raise FlagServiceError(UNKNOWN_FLAG, f"The flag service does not have {named}.")
         if response.status_code in (400, 409, 422):
             raise FlagServiceError(
                 INVALID_ARGUMENT, f"The flag service refused the request ({response.status_code})."
@@ -116,6 +119,8 @@ class FlagServiceClient:
         return self._parse_many(self._request("GET", "/flags"))
 
     def get_flag(self, key: str) -> FlagView:
+        # The flag service exposes no GET /flags/{key}, so one flag comes out of the list. Adding
+        # an endpoint there for this server's convenience would be a change to 001 for no user.
         for flag in self.list_flags():
             if flag.key == key:
                 return flag
@@ -126,5 +131,6 @@ class FlagServiceClient:
             "PUT",
             f"/flags/{key}/env/{env}",
             json={"enabled": enabled, "rollout_percent": rollout_percent},
+            flag_key=key,
         )
         return self._parse_one(response)

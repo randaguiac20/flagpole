@@ -50,6 +50,23 @@ async def test_get_flag_names_a_key_that_does_not_exist(server: MCPServer) -> No
     assert "not_here" in result["error"]["message"]
 
 
+async def test_setting_an_unknown_flag_names_the_key_and_changes_nothing(server_for) -> None:
+    """The contract says the unknown_flag failure names the key; a 404 on a write must too."""
+    from tests.conftest import answers
+
+    service = answers(404)
+    result = await call(
+        server_for(service),
+        "set_flag_state",
+        key="never_created",
+        env="dev",
+        enabled=True,
+        rollout_percent=10,
+    )
+    assert result["error"]["kind"] == "unknown_flag"
+    assert "never_created" in result["error"]["message"]
+
+
 async def test_set_flag_state_changes_one_environment(
     server: MCPServer, flag_service: RecordingFlagService
 ) -> None:
