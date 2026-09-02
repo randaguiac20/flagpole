@@ -24,7 +24,7 @@ A two-page single-page application: sign in with OIDC Authorization Code + PKCE 
 
 **Performance Goals**: SC-002 (save reflected within 1 s locally); no other targets. Measured, never asserted (constitution III).
 
-**Constraints**: same-origin `/api` in every environment (Vite proxy in dev, ingress path in the cluster), so no CORS for the API; Dex needs `web.allowedOrigins` for the token exchange. Dex 2.45.1 has **no** `end_session_endpoint`, so sign-out drops the token locally instead of calling `signoutRedirect()` (research F2). Every interactive element carries `data-testid` (FR-012).
+**Constraints**: same-origin `/api` in every environment (Vite proxy in dev, ingress path in the cluster — feature 005 must route `/api` on the web host to `flagpole-api`, a hand-off recorded here), so no CORS for the API; Dex needs `web.allowedOrigins` for the token exchange. Dex 2.45.1 has **no** `end_session_endpoint`, so sign-out drops the token locally instead of calling `signoutRedirect()` (research F2). Every interactive element carries `data-testid` (FR-012).
 
 **Scale/Scope**: 2 views, ~10 components, 2 static users, ~10 flags.
 
