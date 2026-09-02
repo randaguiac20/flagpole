@@ -47,3 +47,17 @@ flux2 2.9.5 · trivy 0.74.0 · hadolint 2.15.1 · osv-scanner 2.5.1 · yq 4.53.6
 ## Consumer, MCP server, platform charts
 
 Added by features 003–005.
+
+## consumer (flagpole-consumer, 003)
+
+| Package | Version | Why |
+|---|---|---|
+| fastapi | >=0.141,<1 | same framework as the API; one page and two health endpoints |
+| jinja2 | >=3.1,<4 | autoescaped templates — FR-014 is a default here, not a discipline |
+| httpx | >=0.28 | the one outbound call, and its `MockTransport` is what makes every failure testable |
+| pyjwt[crypto] | >=2.13,<3 | signs the service token (RS256) |
+| pydantic-settings | >=2.6,<3 | configuration that refuses an environment that cannot exist |
+| prometheus-fastapi-instrumentator | >=8.1,<9 | `/metrics`, same shape as 001 |
+| pytest, pytest-asyncio, ruff | dev | no `respx`: httpx ships the transport stub this needs |
+
+No database, no cache, no client-side framework. The consumer holds nothing between requests.

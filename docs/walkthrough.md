@@ -114,3 +114,51 @@ else.
 | `make test` | 29 hook + 37 backend + contract check + 44 frontend |
 | `make e2e` | `9 passed (9.5s)`, from a database deleted at the start of every run |
 | `FLAGPOLE_WEB_PORT=18011 make e2e` | `9 passed (9.4s)` — Dex re-rendered and restarted for the new port |
+
+
+## Phase 3 — feature 003-flagpole-consumer via the SDD loop (2026-09-02)
+
+| Step | Invocation | What happened (real output) |
+|---|---|---|
+| specify | `/speckit-specify 003-flagpole-consumer: …` | Three stories: the flag changes what a visitor sees; the page survives a broken flag service; the decision is visible. One `[NEEDS CLARIFICATION]`, on how a service authenticates. |
+| clarify | one batched question | The feature description assumed a client-credentials grant. Checking the provider's own discovery document first was what caught it: `grant_types_supported = [authorization_code, refresh_token, device_code, token-exchange]` — no such grant exists here. Four options were put to the user with their costs; they chose a service-signed token and a second trusted issuer. |
+| spec-first amendment | `specs/001-flagpole-api/spec.md` | 001 had already answered "the consumer forwards the user's token" during its own clarify. That answer assumed a signed-in user, and this page has none, so the earlier clarification is marked superseded and FR-019 was added — **before** any code. |
+| plan | `/speckit-plan` | research C1–C9. Notable restraint: no `respx` (httpx ships `MockTransport`), no cache, no retry, no circuit breaker — each recorded with the signal that would justify it later. |
+| tasks / analyze | `/speckit-tasks` then the analysis pass | 31 tasks, then a coverage scan found **no task cited a requirement id**, so coverage could not be checked mechanically. Every task now names its FR, and the scan found two requirements with no test at all: FR-003 (never cache a decision) and FR-015 (no write path). Both are "must not" requirements — the kind that gets built right and regresses quietly. T010a and T022a cover them. |
+| implement | tests first, per story | Two designs changed while the tests were being written, both for the better. See below. |
+
+### What the tests changed
+
+**The bypass guard fired on my own code.** 001 has a test asserting that a verify-signature-false
+decode appears nowhere in `app/`. Reading the `iss` claim to pick an issuer tripped it. The guard is
+right to be absolute, so the issuer is now read straight out of the payload segment as untrusted
+text — there is no decode call that could ever be widened into a bypass.
+
+**A hope about the client became a rule in the service.** FR-019 says service tokens carry no groups.
+Writing the test for a service token that *claims* the operators group showed that the flag service
+was trusting the consumer to behave. It now ignores groups on service tokens outright, so the viewer
+ceiling holds no matter what the consumer mints.
+
+**The route test was wrong about the framework.** `test_the_consumer_exposes_no_write_path` walked
+`app.routes` for `APIRoute` instances and found only `/metrics` — this FastAPI version keeps included
+routers nested rather than flattening them. A shallow pass would have reported a read-only surface no
+matter what the routers contained. It now walks recursively, and adding a `POST /oops` proves it
+fails.
+
+### Live verification
+
+```
+US1  banner elements: 1        decision-enabled = true   reason = rollout_hit
+US3  alice rollout_miss · bob rollout_hit · carol rollout_miss
+     alice three times: rollout_miss / rollout_miss / rollout_miss
+US2  flag service stopped -> http 200 in 0.050s, reason = service_unavailable, banner elements: 0
+     readyz: {"status":"ok"}          <- deliberately still ready
+     log: ConnectError: All connection attempts failed
+     occurrences of "Bearer" or "eyJ" in the log: 0
+
+SC-003  against a server that accepts and never answers, ceiling 2.0s:
+        http 200 in 2.046s / 2.034s      healthy loads: 0.033-0.047s
+        readyz during the hang: 200 in 0.0016s
+```
+
+`make test`: 29 hook + 46 backend + 47 consumer + 44 frontend.

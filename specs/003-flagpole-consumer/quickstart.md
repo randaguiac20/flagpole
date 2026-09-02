@@ -67,6 +67,56 @@ cd backend && uv run pytest tests/test_service_token.py -q
 
 Proves a service token evaluates successfully and is refused when it tries to write.
 
-## Measurements
+## Measurements (2026-09-02, against live services)
 
-Recorded during implementation; see the walkthrough for the output.
+```
+$ cd consumer && uv run pytest -q
+47 passed in 1.32s
+
+$ cd backend && uv run pytest -q
+46 passed in 2.20s          # 37 before this feature, plus 9 for the service issuer
+```
+
+US1, with the flag service running and `new_banner` enabled at 100% in dev:
+
+```
+banner elements: 1
+decision-enabled = true
+decision-reason  = rollout_hit
+```
+
+US3, the same flag at 50%, three users, then alice three times:
+
+```
+alice@flagpole.local     rollout_miss
+bob@flagpole.local       rollout_hit
+carol@flagpole.local     rollout_miss
+alice again:  rollout_miss / rollout_miss / rollout_miss
+```
+
+US2, with the flag service stopped outright:
+
+```
+page:   http 200 in 0.050s
+decision-reason = service_unavailable
+banner elements: 0
+readyz: {"status":"ok"}
+
+consumer log:
+  WARNING app.client flag evaluation failed, falling back to service_unavailable:
+          ConnectError: All connection attempts failed
+  occurrences of "Bearer" or "eyJ" in the log: 0
+```
+
+SC-003, against a server that accepts the connection and never answers, ceiling set to 2.0 s —
+measured, not asserted (constitution III):
+
+```
+page: http 200 in 2.046s
+page: http 200 in 2.034s
+reason = service_unavailable
+readyz during the hang: 200 in 0.0016s
+consumer log: ReadTimeout
+```
+
+A healthy page load costs 0.033–0.047 s, so the ceiling is a ceiling and not a delay.
