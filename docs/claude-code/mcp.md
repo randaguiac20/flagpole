@@ -17,11 +17,19 @@ Trigger: data or actions Claude cannot reach through the shell (a browser), or l
 ## Our implementation
 
 - `playwright`: `npx @playwright/mcp@0.0.80 --headless --isolated --output-dir .claude/logs/playwright`. The same name exists in the user scope on the author's machine; the project entry wins, which is the precedence lesson.
-- `flagpole-mcp` (feature 004): Python `mcp` SDK v2 (`MCPServer`), tools `list_flags`, `evaluate_flag`, `toggle_flag`, resource `flags://{env}`, prompt `explain-rollout`, stdio, tested with the in-memory `Client`. Added to `.mcp.json` when it exists.
+- `flagpole-mcp` (feature 004): Python `mcp` SDK 2.1.1 (`from mcp.server import MCPServer`, not `FastMCP` — gotcha #8). Tools `list_flags`, `get_flag`, `set_flag_state`; resource `flagpole://flags`; prompt `rollout_check`. stdio, no port. Tested with the in-memory `Client` against the server object, so a capability that was never registered fails a test rather than a demo (61 tests). The names above are fixed by `specs/004-flagpole-mcp/contracts/mcp-surface.json`, which the suite asserts the published schema against.
+
+  Three things worth copying:
+
+  - **Argument rules go in the tool signature.** `key: FlagKey`, `env: Env`, `enabled: StrictBool`, `rollout_percent: Annotated[int, Field(ge=0, le=100)]` become the published input schema, so the assistant is told the rules in advance and the SDK refuses a breaking call before the body runs. `StrictBool` matters: ordinary coercion turns the string `"false"` into `True`, and the call would look like it worked.
+  - **Every capability is total.** No exception escapes; each failure returns `{"error": {"kind", "message"}}` with six distinguishable kinds, because an assistant cannot read logs and the remedies differ.
+  - **Logging goes to stderr, explicitly.** On stdio, stdout *is* the protocol; one stray `print` kills the session with a parse error. A test asserts a tool call writes nothing to stdout.
+
+  Its rights come from configuration on the flag service (the operator slot, 001 FR-020), never from a claim in its token, and the production overlay never grants them.
 
 ## How to verify
 
-`/mcp` → `playwright: connected (project)`; `claude mcp list` from the repo root; a tool call appears as `mcp__playwright__browser_navigate`. Pending: user session.
+`/mcp` → `playwright: connected (project)` and `flagpole-mcp: connected (project)`; `claude mcp list` from the repo root; a tool call appears as `mcp__playwright__browser_navigate` or `mcp__flagpole-mcp__set_flag_state`. `flagpole-mcp` can also be driven outside a session — `cd mcp/flagpole-mcp && uv run python -m flagpole_mcp </dev/null` must exit quietly, which is the one thing the in-memory tests cannot show. Pending: user session for the `/mcp` output.
 
 ## Common mistakes
 

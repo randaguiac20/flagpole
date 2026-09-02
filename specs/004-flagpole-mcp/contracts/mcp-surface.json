@@ -1,0 +1,122 @@
+{
+  "$comment": "The capability surface of flagpole-mcp. Spec 004 FR-001..FR-005, FR-008. The test suite asserts the running server's published schema against this file, so a renamed tool, a dropped argument or a relaxed rule fails a test rather than a demo.",
+  "server_name": "flagpole-mcp",
+  "transport": "stdio",
+  "tools": [
+    {
+      "name": "list_flags",
+      "summary": "Every flag with both environments' state.",
+      "arguments": [],
+      "spec": "FR-001"
+    },
+    {
+      "name": "get_flag",
+      "summary": "One flag by key, with both environments' state.",
+      "arguments": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "pattern": "^[a-z][a-z0-9_]{1,62}$"
+        }
+      ],
+      "spec": "FR-002"
+    },
+    {
+      "name": "set_flag_state",
+      "summary": "Set one flag's enabled state and rollout percentage in one environment.",
+      "arguments": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "pattern": "^[a-z][a-z0-9_]{1,62}$"
+        },
+        {
+          "name": "env",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "dev",
+            "prod"
+          ]
+        },
+        {
+          "name": "enabled",
+          "type": "boolean",
+          "required": true,
+          "strict": true
+        },
+        {
+          "name": "rollout_percent",
+          "type": "integer",
+          "required": true,
+          "minimum": 0,
+          "maximum": 100
+        }
+      ],
+      "spec": "FR-003, FR-008"
+    }
+  ],
+  "resources": [
+    {
+      "uri": "flagpole://flags",
+      "name": "flag-state",
+      "mime_type": "application/json",
+      "summary": "Current state of every flag in both environments.",
+      "spec": "FR-004"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "rollout_check",
+      "summary": "Review whether a flag's rollout is sensible, with its current state filled in.",
+      "arguments": [
+        {
+          "name": "key",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "spec": "FR-005"
+    }
+  ],
+  "failure_kinds": [
+    {
+      "kind": "unreachable",
+      "must_name": "the address that was tried",
+      "spec": "FR-009"
+    },
+    {
+      "kind": "unauthorized",
+      "must_name": "that the flag service refused the credentials",
+      "spec": "FR-009"
+    },
+    {
+      "kind": "forbidden",
+      "must_name": "that this server has not been granted operator rights",
+      "spec": "FR-011a"
+    },
+    {
+      "kind": "unknown_flag",
+      "must_name": "the key that was not found",
+      "spec": "FR-009"
+    },
+    {
+      "kind": "invalid_argument",
+      "must_name": "the argument and the rule it broke; refused before the flag service is called",
+      "spec": "FR-008"
+    },
+    {
+      "kind": "unexpected_shape",
+      "must_name": "that the answer did not match the documented shape",
+      "spec": "FR-009"
+    }
+  ],
+  "forbidden_in_any_output": [
+    "Authorization",
+    "BEGIN PRIVATE KEY",
+    "eyJ",
+    "Traceback"
+  ]
+}

@@ -24,6 +24,7 @@ trap cleanup EXIT
 
 scripts/dex-config.sh
 scripts/consumer-keys.sh
+scripts/mcp-keys.sh
 
 echo "== identity provider on :$DEX_PORT"
 if ! curl -sf "http://localhost:$DEX_PORT/dex/.well-known/openid-configuration" >/dev/null 2>&1; then
@@ -44,6 +45,10 @@ scripts/ports.sh check "$API_PORT"
   export FLAGPOLE_SERVICE_AUDIENCE="${FLAGPOLE_SERVICE_AUDIENCE:-flagpole-api}"
   export FLAGPOLE_SERVICE_PUBLIC_KEY_PATH="${FLAGPOLE_SERVICE_PUBLIC_KEY_PATH:-../consumer/.keys/service.pub}"
   export FLAGPOLE_SERVICE_ENV="${FLAGPOLE_CONSUMER_ENV:-dev}"  # a token for the other env is refused
+  # The operator slot for the MCP server (001 FR-020). Local development only: the prod overlay
+  # never sets these two, so the assistant can never change a production flag.
+  export FLAGPOLE_OPERATOR_SERVICE_ISSUER="${FLAGPOLE_OPERATOR_SERVICE_ISSUER:-flagpole-mcp}"
+  export FLAGPOLE_OPERATOR_SERVICE_PUBLIC_KEY_PATH="${FLAGPOLE_OPERATOR_SERVICE_PUBLIC_KEY_PATH:-../mcp/flagpole-mcp/.keys/service.pub}"
   uv run alembic upgrade head
   uv run python -m app.seed
   exec uv run uvicorn app.main:create_app --factory --host 127.0.0.1 --port "$API_PORT" --reload
