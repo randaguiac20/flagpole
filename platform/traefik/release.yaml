@@ -56,24 +56,27 @@ spec:
         port: 8000
         exposedPort: 80
         # Everything served over TLS (FR-010): plain HTTP answers with a redirect, not with content.
-        redirections:
-          entryPoint:
-            to: websecure
-            scheme: https
-            permanent: true
+        # Chart 41.x nests this under `http`; it sat directly under the port in earlier versions.
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
       websecure:
         port: 8443
         exposedPort: 443
-        tls:
-          enabled: true
+        http:
+          tls:
+            enabled: true
     ingressClass:
       enabled: true
       isDefaultClass: true
-    logs:
-      general:
-        level: INFO
-      access:
-        enabled: true
+    # Top-level in chart 41.x, not nested under `logs`.
+    log:
+      level: INFO
+    accessLog:
+      enabled: true
     providers:
       kubernetesIngress:
         publishedService:
