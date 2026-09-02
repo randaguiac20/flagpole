@@ -104,6 +104,10 @@ cause.
   and off by default (001 FR-020). Audit entries name `flagpole-mcp`, which is accurate — the
   assistant made the change. Holding a real operator's token was rejected: it would attribute the
   change to a person who did not make it, and would expire mid-run.
+- Q: Where do argument rules live — in the tool's schema or in a check inside it? → A: In the schema.
+  The assistant then knows the rules before calling, and a bad call is refused before dispatch. A
+  second check inside the tool would be a duplicate copy of the same rules, which is what FR-007
+  exists to prevent elsewhere.
 - Q: What happens when that grant is not configured? → A: The flag service has two service slots, one
   viewer and one operator, and a deployment decides which slot (if either) this server occupies. In
   the viewer slot it reads and is refused writes; in neither slot its credentials are refused
@@ -126,8 +130,10 @@ cause.
   on the call that produced it, and nothing is cached between calls.
 - **FR-007**: The server MUST NOT evaluate flags, reimplement the rollout rule, or write audit
   entries itself. The flag service remains the only place those happen.
-- **FR-008**: The server MUST validate arguments before calling the flag service — flag key shape and
-  rollout range — and refuse with a message naming the rule.
+- **FR-008**: The rules an argument must satisfy — flag key shape, environment, rollout range, and
+  that an enabled state is a real boolean rather than a string — MUST be declared in the tool's own
+  argument schema, so the assistant is told them in advance and a breaking call is refused before it
+  reaches the flag service, naming the argument and the rule.
 - **FR-009**: Every failure MUST be returned as a message naming the cause, distinguishing an
   unreachable service, refused credentials, an unknown flag, and an invalid argument.
 - **FR-010**: No result, message or log line may contain the server's credentials or key material.

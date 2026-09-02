@@ -190,3 +190,131 @@ Verified live afterwards: the same consumer reads `env_disabled` from a `dev` se
 drift in claim names, algorithm or lifetime fails a test instead of only the demo.
 
 `make test` after the fixes: 29 hook + 55 backend + 59 consumer + 44 frontend.
+
+## Phase 3 — feature 004-flagpole-mcp via the SDD loop (2026-09-02)
+
+`/speckit-specify` → the spec surfaced a conflict it could not settle: a service token grants viewer
+rights (the rule 003 established), but this server's whole purpose is arranging state, which is a
+write. That became the one clarification question, answered by granting operator rights **per service
+issuer** — a slot in the flag service's configuration, not a claim in the token. `specs/001` was
+amended (FR-020) and committed before a line of 004 was written, as in 003.
+
+`/speckit-analyze` found three requirements with no verifying task — "holds no state", "never
+reimplements the rollout rule", and the agent arranging a Given state without an operator sign-in.
+The first two became source guards rather than prose, because a helpful later edit is exactly how a
+cache or a second copy of the rule appears.
+
+### What the SDK actually is (gotcha #8, confirmed)
+
+```
+$ uv run python -c "from mcp.server import MCPServer; import inspect; print(inspect.signature(MCPServer.tool))"
+(self, name=None, title=None, description=None, annotations=None, icons=None, meta=None, structured_output=None)
+```
+
+`FastMCP` was renamed `MCPServer` in `mcp` 2.1.1. Code written against the older name does not import.
+
+### One design decision changed by evidence
+
+The first implementation validated tool arguments inside the tool and returned a message. A test
+showed the SDK had already coerced `"yes"` to `True` from the `enabled: bool` annotation before that
+check ever ran:
+
+```
+{'key': 'a_b', 'env': 'dev', 'enabled': 'yes', 'pct': 5} -> is_error=False  {"flag": ... "enabled": true ...}
+```
+
+Probing the SDK showed the annotations *are* the contract — it publishes them and enforces them:
+
+```
+{'key': 'a_b', 'env': 'dev', 'enabled': 'yes', 'pct': 5}  -> True  enabled  Input should be a valid boolean
+{'key': 'a_b', 'env': 'dev', 'enabled': True,  'pct': 500} -> True  pct      Input should be less than or equal to 100
+{'key': 'Bad', 'env': 'dev', 'enabled': True,  'pct': 5}   -> True  key      String should match pattern '^[a-z][a-z0-9_]{1,62}$'
+{'key': 'a_b', 'env': 'staging', ...}                      -> True  env      Input should be 'dev' or 'prod'
+```
+
+So FR-008 was rewritten — spec first — to say the rules live in the published argument schema. The
+assistant is told them in advance, a breaking call never reaches the flag service, and the duplicate
+check inside the tool was deleted rather than kept for comfort.
+
+### Live verification (2026-09-02)
+
+The real process, over stdio, against a running flag service:
+
+```
+tools:     ['list_flags', 'get_flag', 'set_flag_state']
+resources: ['flagpole://flags']
+prompts:   ['rollout_check']
+
+set_flag_state new_banner dev enabled=true rollout=100
+  -> {"flag": {"key": "new_banner", "environments": {"dev": {"enabled": true, "rollout_percent": 100}, ...}}}
+
+resource flagpole://flags -> {"flags": [{"key": "new_banner", ...}]}
+prompt   rollout_check    -> Review the rollout of the Flagpole flag 'new_banner'. Its current state is: {...}
+```
+
+All three capability kinds exercised (SC-004). Then, with nothing restarted, the consumer:
+
+```
+$ curl -s "http://127.0.0.1:18020/?user=demo@flagpole.local"
+decision-flag    new_banner
+decision-env     dev
+decision-user    demo@flagpole.local
+decision-enabled true
+decision-reason  rollout_hit
+```
+
+and the audit trail (SC-006) — the assistant is named as the actor, which is the truth:
+
+```
+$ curl -s -H "Authorization: Bearer $TOKEN" ".../audit?flag_key=new_banner"
+{"items": [{"id": 1, "who": "flagpole-mcp", "flag_key": "new_banner", "env": "dev",
+            "before": {"enabled": false, "rollout_percent": 0},
+            "after":  {"enabled": true,  "rollout_percent": 100}}], "next_before": null}
+```
+
+The two failure paths that matter, verified against the real service rather than a stub. With the
+flag service restarted holding `flagpole-mcp` in the **viewer** slot instead of the operator one:
+
+```
+read  -> {"flags": [{"key": "new_banner", ...
+write -> {"error": {"kind": "forbidden",
+                    "message": "This server has not been granted operator rights by the flag
+                                service, so it can read flag state but not change it."}}
+```
+
+and with the flag service stopped altogether, every tool — none of them an error at the protocol
+level, because a traceback gives an assistant no remedy:
+
+```
+list_flags     is_error=False -> {"error": {"kind": "unreachable", "message": "The flag service at http://127.0.0.1:18000 could not be reached."}}
+get_flag       is_error=False -> {"error": {"kind": "unreachable", ...}}
+set_flag_state is_error=False -> {"error": {"kind": "unreachable", ...}}
+```
+
+An environment claim minted for `prod` against a dev-configured service: `401`. A dev token in the
+operator slot writing: `201`/`200`. The same token with `groups: ["operators"]` when the deployment
+put it in the viewer slot: `403` — the role is the slot's, never the token's.
+
+### Mutation checks
+
+Three guarantees, each removed to confirm exactly one test notices:
+
+| Removed | Result |
+|---|---|
+| the 403 branch (a refused write becomes an outage) | 2 failed |
+| `StrictBool` on `enabled` | 6 failed |
+| the resource caching its answer | 1 failed |
+
+A fourth mutation *survived*: emptying a service token's groups turned out to be dead code once the
+role came from the slot. It was deleted rather than kept — the guarantee is now structural, and a
+later mutation confirmed a service token cannot reach the group rule at all.
+
+### Suites after 004
+
+```
+hook tests: 29 passed
+backend:    67 passed
+consumer:   59 passed
+mcp:        61 passed
+frontend:   44 passed (10 files)
+```

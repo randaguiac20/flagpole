@@ -21,7 +21,10 @@ failure, not a partially-read result (FR-009).
 
 ## Tool arguments
 
-| Tool | Argument | Type | Validated before any call |
+Declared in each tool's published argument schema, so the assistant is told the rules before calling
+and a breaking call is refused before dispatch (FR-008).
+
+| Tool | Argument | Type | Rule in the schema |
 |---|---|---|---|
 | `get_flag` | `key` | string | key pattern |
 | `set_flag_state` | `key` | string | key pattern |

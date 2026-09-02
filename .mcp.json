@@ -10,6 +10,23 @@
         "--output-dir",
         "${CLAUDE_PROJECT_DIR:-.}/.claude/logs/playwright"
       ]
+    },
+    "flagpole-mcp": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${CLAUDE_PROJECT_DIR:-.}/mcp/flagpole-mcp",
+        "python",
+        "-m",
+        "flagpole_mcp"
+      ],
+      "env": {
+        "FLAGPOLE_API_URL": "http://localhost:18000",
+        "FLAGPOLE_MCP_ENV": "dev",
+        "FLAGPOLE_MCP_KEY_PATH": "${CLAUDE_PROJECT_DIR:-.}/mcp/flagpole-mcp/.keys/service.key"
+      }
     }
   }
 }
