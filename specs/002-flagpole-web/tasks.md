@@ -61,4 +61,4 @@
 - [X] T027 `frontend/src/styles.css` and basic accessibility: labels on every control, visible focus, table semantics; verify every `data-testid` in contracts/ui-contract.md exists in the DOM (FR-012); keep it to one stylesheet (constitution II)
 - [X] T028 [P] Run the whole suite: `npm run lint`, `npm test`, `npm run api:types:check`, `npx playwright test` (10 consecutive runs for SC-005); measure and record, never assert, the first-use sign-in time (SC-001) and the save round trip (SC-002) in `specs/002-flagpole-web/quickstart.md`
 - [X] T029 [P] Update `docs/dependencies.md` (frontend table), `docs/ports.md` (18010, 18030 confirmed), `docs/walkthrough.md` (002 row, `/e2e` skill and `ui-tester` agent runs with real output), `Makefile` (`make dev` starts Dex + API + web; `make e2e` runs Playwright)
-- [ ] T030 Run the `code-reviewer` agent on the branch diff; fix findings; merge to `main`
+- [X] T030 Run the `code-reviewer` agent on the branch diff; fix findings; merge to `main`
