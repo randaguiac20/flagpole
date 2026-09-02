@@ -41,6 +41,8 @@ see the new state.
 - [ ] T017 [P] [US1] Add `set_flag_state` cases to `test_tools.py` — a successful change, a rollout outside 0..100 naming the range, a bad key shape refused before any call, and `enabled="yes"` refused rather than coerced
 - [ ] T018 [US1] Implement `mcp/flagpole-mcp/flagpole_mcp/client.py` — the calls to the flag service, a fresh token per call, every failure mapped to its kind
 - [ ] T019 [US1] Implement the three tools in `mcp/flagpole-mcp/flagpole_mcp/server.py` with the names and arguments in `contracts/mcp-surface.json`
+- [ ] T019a [US1] Add a test asserting the server holds no state: two identical `get_flag` calls each reach the flag service, and a change made between them is visible on the second (FR-006)
+- [ ] T019b [US1] Add a source guard test asserting `flagpole_mcp/` contains no rollout arithmetic — no `sha256`, no `% 100` — so evaluation cannot quietly reappear here (FR-007)
 - [ ] T020 [US1] Write `mcp/flagpole-mcp/tests/test_contract.py` asserting the running server's surface matches `contracts/mcp-surface.json` — names, arguments, required flags
 
 ## Phase 4: User Story 2 — reading state without being told how (P2)
@@ -72,6 +74,7 @@ cause.
 - [ ] T029 Start the server as a real process (`uv run python -m flagpole_mcp </dev/null`) and confirm it exits quietly (research D8)
 - [ ] T030 Write `docs/decisions/mcp-flagpole.md` — the decision test, including the honest note that a shell command would serve a human, and why the server exists anyway
 - [ ] T031 Update `docs/claude-code/mcp.md` and `docs/walkthrough.md` with real output for a tool, the resource and the prompt (SC-004)
+- [ ] T031a Have the `ui-tester` agent arrange a Given state through this server and drive the browser, with no operator sign-in anywhere in the run (SC-002)
 - [ ] T032 Add any new gotcha discovered while implementing to `docs/gotchas.md`
 
 ## Dependencies
