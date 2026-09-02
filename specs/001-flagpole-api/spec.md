@@ -13,7 +13,7 @@
 ### Session 2026-09-02
 
 - Q: How should local development and automated tests authenticate, given real tokens come from Dex? → A: Tests sign their own tokens against a configurable issuer/key set; no validation bypass exists in the code; local dev uses the demo identity provider.
-- Q: How does the consumer service (003) authenticate when evaluating on behalf of the logged-in user? → A: It forwards the user's own token; the evaluation endpoint sees a user identity, never a service identity.
+- Q: How does the consumer service (003) authenticate when evaluating on behalf of the logged-in user? → A: It forwards the user's own token; the evaluation endpoint sees a user identity, never a service identity. **Superseded 2026-09-02 while specifying 003** — see the amendment below.
 - Q: Should the audit log be filterable by flag key in this feature? → A: Yes, an optional flag-key filter with unchanged pagination.
 - Q: What happens when two operators change the same flag environment concurrently? → A: Last write wins; no version field; both changes are audited in order.
 
@@ -112,7 +112,7 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **FR-008**: Any authenticated user MUST be able to evaluate a flag for an environment and a user identifier and receive an enabled decision plus a reason.
 - **FR-009**: Evaluation MUST be deterministic: if the environment is disabled the decision is disabled with reason `env_disabled`; otherwise a bucket 0–99 is derived from the flag key and user identifier using the documented hash rule (SHA-256 of `"<flag_key>:<user_id>"` reduced modulo 100) and the decision is enabled with `rollout_hit` when bucket < rollout, else disabled with `rollout_miss`.
 - **FR-010**: Evaluating an unknown flag MUST succeed with decision disabled and reason `unknown_flag`.
-- **FR-011**: All flag, evaluation and audit operations MUST require a valid identity token issued by the configured identity provider (issuer and signing keys are configuration, so tests can supply their own); there MUST be no switch that disables token validation. Missing or invalid tokens MUST be refused as unauthenticated.
+- **FR-011**: All flag, evaluation and audit operations MUST require a valid token issued by one of the configured trusted issuers (each issuer's identity and signing keys are configuration, so tests can supply their own); there MUST be no switch that disables token validation. Missing or invalid tokens MUST be refused as unauthenticated.
 - **FR-012**: The caller's role MUST be derived from the token's group membership: members of `operators` are operators, everyone else is a viewer; write operations by viewers MUST be refused as forbidden. The role check MUST exist in exactly one place.
 - **FR-013**: Liveness, readiness and metrics MUST be available without a token; readiness MUST reflect whether the data store is reachable.
 - **FR-014**: Flag keys MUST match `^[a-z][a-z0-9_]{1,62}$`; descriptions MUST be at most 200 characters.
@@ -120,6 +120,18 @@ The cluster's probes and the monitoring stack need liveness, readiness and metri
 - **FR-016**: Data MUST survive restarts, and the schema MUST be versioned so that later features can change it without data loss.
 - **FR-017**: Errors MUST carry a stable, machine-readable message so consumers and tests can rely on it.
 - **FR-018**: Concurrent changes to the same flag environment are resolved last-write-wins; every accepted change is audited in the order it was applied, and no version token is required from callers.
+- **FR-019**: A second trusted issuer MAY be configured for services rather than people. Tokens from it MUST be validated the same way as any other, MUST carry no group membership, and therefore MUST receive viewer rights only — a service can evaluate flags and read, never write. When no service issuer is configured, the service MUST behave exactly as before. (Added by 003-flagpole-consumer.)
+
+### Amendment 2026-09-02 (from 003-flagpole-consumer)
+
+- Q: The consumer page has no signed-in user to borrow a token from, and the identity provider offers
+  no client-credentials grant. How does a service authenticate? → A: The service signs its own
+  short-lived token with a private key, and this service validates it against a configured public key
+  as a second trusted issuer. Service tokens carry no group membership, so they hold viewer rights and
+  can evaluate but never change a flag.
+- This supersedes the token-forwarding answer above, which assumed the consumer acted on behalf of a
+  logged-in person. It does not weaken FR-011: every request still carries a token that is validated,
+  and there is still no bypass. It adds FR-019 and widens FR-011 from one issuer to a configured set.
 
 ### Key Entities
 
