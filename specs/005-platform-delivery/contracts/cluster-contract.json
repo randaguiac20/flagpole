@@ -1,0 +1,61 @@
+{
+  "$comment": "What a correctly deployed Flagpole cluster looks like. Spec 005. scripts/verify-cluster.sh asserts the running cluster against this file, and the deploy-verifier agent reads it, so a renamed namespace or a dropped workload fails a check rather than a demo.",
+  "cluster_name": "flagpole",
+  "ingress_ports": [80, 443],
+  "flux": {
+    "path": "clusters/local",
+    "kustomizations": ["flux-system", "platform", "flagpole-dev", "flagpole-prod"],
+    "helmreleases": [
+      {"name": "traefik", "namespace": "traefik", "chart": "traefik", "version": "41.4.0"},
+      {"name": "cert-manager", "namespace": "cert-manager", "chart": "cert-manager", "version": "v1.21.1"},
+      {"name": "dex", "namespace": "dex", "chart": "dex", "version": "0.24.1"}
+    ]
+  },
+  "environments": [
+    {
+      "name": "dev",
+      "namespace": "flagpole-dev",
+      "hosts": {"web": "dev.flagpole.localhost", "consumer": "consumer.dev.flagpole.localhost"},
+      "grants_operator_to_mcp": true
+    },
+    {
+      "name": "prod",
+      "namespace": "flagpole-prod",
+      "hosts": {"web": "prod.flagpole.localhost", "consumer": "consumer.prod.flagpole.localhost"},
+      "grants_operator_to_mcp": false
+    }
+  ],
+  "shared_hosts": {"dex": "dex.flagpole.localhost"},
+  "workloads": [
+    {"kind": "Deployment", "name": "flagpole-api", "per_environment": true, "probes": ["/healthz", "/readyz"]},
+    {"kind": "Deployment", "name": "flagpole-consumer", "per_environment": true, "probes": ["/healthz", "/readyz"]},
+    {"kind": "Deployment", "name": "flagpole-web", "per_environment": true, "probes": ["/healthz"]},
+    {"kind": "StatefulSet", "name": "postgres", "per_environment": true, "probes": []}
+  ],
+  "security": {
+    "pod_security_standard": "restricted",
+    "enforced_on": ["flagpole-dev", "flagpole-prod"],
+    "every_container": {
+      "runAsNonRoot": true,
+      "allowPrivilegeEscalation": false,
+      "capabilities_drop": ["ALL"]
+    },
+    "network": {
+      "default_deny": ["flagpole-dev", "flagpole-prod"],
+      "denied_examples": [
+        {"from": "flagpole-dev", "to": "flagpole-prod", "port": 5432},
+        {"from": "flagpole-prod", "to": "flagpole-dev", "port": 5432}
+      ]
+    }
+  },
+  "secrets": {
+    "encrypted_paths": ["deploy/**", "clusters/**"],
+    "encrypted_fields": ["data", "stringData"],
+    "decryption_secret": {"name": "sops-age", "namespace": "flux-system"},
+    "expected": [
+      {"name": "flagpole-postgres", "per_environment": true},
+      {"name": "flagpole-service-keys", "per_environment": true},
+      {"name": "dex-clients", "namespace": "dex"}
+    ]
+  }
+}
