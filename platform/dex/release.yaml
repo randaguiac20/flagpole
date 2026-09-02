@@ -49,6 +49,19 @@ spec:
       retries: 3
   values:
     replicaCount: 1
+    # The chart sets no security context, and the namespace enforces the restricted standard, so
+    # the pod was rejected outright: "violates PodSecurity restricted:latest". That is the standard
+    # working — a third party's defaults do not get to lower this cluster's floor (FR-016). The
+    # values below are the same floor every workload in deploy/base/ already meets.
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      seccompProfile: {type: RuntimeDefault}
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities: {drop: ["ALL"]}
     config:
       issuer: https://dex.flagpole.localhost/dex
       storage:
