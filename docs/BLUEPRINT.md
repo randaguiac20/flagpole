@@ -36,3 +36,37 @@ git switch -c 001-flagpole-api            # v1.0.3's script names the branch but
 /speckit-implement                        # tests first per story; `make test-fast` green
 ```
 Then smoke-run uvicorn on 18000 (quickstart.md), run the `code-reviewer` agent on the branch, fix findings, merge to `main` (fast-forward).
+
+## Phase 3 (continued) — feature 002-flagpole-web (SDD loop, branch `002-flagpole-web`)
+
+```
+/speckit-specify 002-flagpole-web: <sign-in, flag table per environment, operator vs viewer, audit view, non-goals> Use the GIT_BRANCH_NAME 002-flagpole-web.
+git switch -c 002-flagpole-web
+/speckit-clarify                          # 3 questions, batched into one prompt (gotcha #18)
+/speckit-plan <technical context: Vite + React 19 + TypeScript, oidc-client-ts PKCE, types generated from the 001 contract, Vitest + Playwright>
+/speckit-tasks
+/speckit-analyze
+/speckit-implement                        # Vitest first, then components
+```
+Then, before merging:
+
+```
+docker compose -f docker-compose.dev.yaml up -d dex   # started by scripts/dex-config.sh + playwright
+make test                                             # hooks + backend + contract drift + frontend
+make e2e                                              # Playwright starts Dex, the API and Vite itself
+/e2e                                                  # the skill, once, to prove it works
+ui-tester agent                                       # four scenarios in a real browser, screenshots
+code-reviewer agent                                   # returned request-changes with 24 findings
+```
+
+Order matters here: the agents run **before** the merge, and the review is worth more than it looks —
+it found a lint gate that compiled zero files and a type error hiding in the directory that gate never
+covered. Fix findings spec-first (the contract change to the audit entry's `after` shape came before
+the code), then merge to `main`.
+
+Two things this phase adds that later phases depend on:
+
+- `frontend/public/config.js` + `src/auth/config.ts` — the identity provider is read at run time, so
+  feature 005 can ship one image into both namespaces.
+- `dex/dev-config.yaml.tmpl` + `scripts/dex-config.sh` — Dex's ports come from `.env`, so nothing in
+  the local stack hardcodes 18010.
