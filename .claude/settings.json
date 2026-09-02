@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make *)",
+      "Bash(uv *)",
+      "Bash(uvx *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(ruff *)",
+      "Bash(pytest *)",
+      "Bash(shellcheck *)",
+      "Bash(jq *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git fetch *)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(kubectl rollout status *)",
+      "Bash(flux get *)",
+      "Bash(flux events *)",
+      "Bash(flux reconcile *)",
+      "Bash(k3d cluster list *)",
+      "Bash(k3d image import *)",
+      "Bash(docker build *)",
+      "Bash(docker images *)",
+      "Bash(sops --encrypt *)",
+      "Bash(sops updatekeys *)",
+      "Bash(scripts/ports.sh *)",
+      "mcp__playwright__*"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git reset --hard *)",
+      "Bash(kubectl delete *)",
+      "Bash(flux uninstall *)",
+      "Bash(k3d cluster delete *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(sops -d *)",
+      "Bash(sops --decrypt *)",
+      "Bash(sops decrypt *)",
+      "Read(**/*.agekey)",
+      "Read(**/.env)",
+      "Read(~/.config/sops/age/**)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(flux bootstrap *)",
+      "Bash(k3d cluster create *)",
+      "Bash(gh repo *)",
+      "Bash(gh pr merge *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh",
+            "args": [],
+            "timeout": 10,
+            "statusMessage": "Collecting branch, cluster, Flux and key facts"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/gitops-guard.sh",
+            "args": [],
+            "if": "Bash(kubectl *)",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/secret-guard.sh",
+            "args": [],
+            "if": "Edit(deploy/**)",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/secret-guard.sh",
+            "args": [],
+            "if": "Write(deploy/**)",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/secret-guard.sh",
+            "args": [],
+            "if": "Edit(clusters/**)",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/secret-guard.sh",
+            "args": [],
+            "if": "Write(clusters/**)",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/format.sh",
+            "args": [],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/stop-tests.sh",
+            "args": [],
+            "timeout": 120,
+            "statusMessage": "Stop gate: running make test-fast"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/notify.sh",
+            "args": [],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

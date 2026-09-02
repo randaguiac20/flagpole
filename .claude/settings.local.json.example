@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy to .claude/settings.local.json (gitignored). Local overrides win over the shared settings.json. Two typical uses: (1) personal allow rules you don't want to impose on teammates, (2) the InstructionsLoaded logging hook, kept OFF in the shared file because it is observability, not a guard.",
+  "permissions": {
+    "allow": [
+      "Bash(gh pr view *)"
+    ]
+  },
+  "hooks": {
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/instructions-loaded.sh",
+            "args": [],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

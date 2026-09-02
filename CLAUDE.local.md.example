@@ -1,0 +1,13 @@
+# CLAUDE.local.md — personal, per-checkout overrides (gitignored; copy this file to CLAUDE.local.md)
+#
+# Use it for things a teammate must NOT inherit: your sandbox URLs, local test data, personal port overrides.
+# Team conventions belong in CLAUDE.md or .claude/rules/. Nothing here may contradict them.
+#
+# Caveat (git worktrees): CLAUDE.local.md lives in ONE checkout. A worktree created with `claude --worktree`
+# or `git worktree add` does not see it. If you want personal notes in every worktree, keep them in a file
+# outside the repo and import it from this file instead:
+#     @~/.claude/flagpole-local.md
+
+- My k3d cluster is named `flagpole-rand` (override `FLAGPOLE_CLUSTER_NAME` in `.env`).
+- I run the API on 18001 because 18000 is used by another project; `.env` has `FLAGPOLE_API_PORT=18001`.
+- Test users I use: `alice@flagpole.local` (operators group), `bob@flagpole.local` (viewer). Password is in `.env`, not here.

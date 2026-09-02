@@ -1,0 +1,12 @@
+{
+  "_comment": "Example managed settings (highest precedence, cannot be overridden by user/project settings). Install to /etc/claude-code/managed-settings.json. Enforcement lives here; guidance lives in the managed CLAUDE.md.",
+  "permissions": {
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Read(**/*.agekey)",
+      "Read(**/.env)"
+    ]
+  },
+  "strictKnownMarketplaces": false
+}

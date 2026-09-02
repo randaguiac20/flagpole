@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@0.0.80",
+        "--headless",
+        "--isolated",
+        "--output-dir",
+        "${CLAUDE_PROJECT_DIR:-.}/.claude/logs/playwright"
+      ]
+    }
+  }
+}
