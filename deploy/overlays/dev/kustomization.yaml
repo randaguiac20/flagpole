@@ -9,7 +9,6 @@ resources:
   - ingress.yaml
   - postgres-secret.yaml
   - service-keys-secret.yaml
-  - gitops-demo.yaml
 
 patches:
   - path: replicas.yaml
