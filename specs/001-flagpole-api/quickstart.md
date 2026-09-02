@@ -8,7 +8,7 @@ uv sync                                   # installs runtime + dev deps from uv.
 uv run alembic upgrade head               # creates ./flagpole.db (FLAGPOLE_DATABASE_URL default)
 uv run python -m app.seed                 # creates new_banner once (idempotent)
 uv run pytest -q                          # all scenarios; no network, temp SQLite
-uv run uvicorn app.main:app --port 18000  # or: make dev (from repo root, starts Dex too)
+uv run uvicorn app.main:create_app --factory --port 18000  # or: make dev (from repo root)
 ```
 
 Prove the feature (with `make dev` running Dex on 18030; tokens from `scripts/dev-token.sh <user>` in feature 002/003 — until then use the test token factory):
@@ -24,3 +24,14 @@ Prove the feature (with `make dev` running Dex on 18030; tokens from `scripts/de
 | FR-013 metrics | `curl -s localhost:18000/metrics \| grep flagpole_evaluations_total` | counter lines by `env`,`reason` |
 
 Contract: `contracts/openapi.yaml` must match `curl localhost:18000/openapi.json` (a test diffs paths and status codes).
+
+## Observed on 2026-09-02 (implementation session)
+
+```
+$ uv run pytest -q --durations=5
+35 passed in 1.76s        # slowest: 0.16 s for 100 sequential /evaluate calls → ~1.6 ms each (SC-006 measured, not asserted)
+$ uv run alembic upgrade head            # Running upgrade  -> 0001, initial
+$ uv run python -m app.seed              # seeded new_banner   (second run: seed already present)
+$ curl -s localhost:18000/healthz         # {"status":"ok"}
+$ curl -s -o /dev/null -w '%{http_code}' localhost:18000/flags   # 401
+```
