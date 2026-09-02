@@ -7,6 +7,13 @@ metadata:
   name: flagpole-web
   annotations:
     cert-manager.io/cluster-issuer: flagpole-ca
+    # Strips /api before the flag service sees it. The annotation applies to every route this
+    # Ingress creates, including the web app's — which is harmless, because stripPrefix passes a
+    # request whose path does not start with the prefix through unchanged. One Ingress rather than
+    # two also keeps one Certificate for the host; two would race for the same TLS secret.
+    # The reference carries the namespace, which is why the annotation is here and the Middleware
+    # itself is in the shared base.
+    traefik.ingress.kubernetes.io/router.middlewares: flagpole-dev-strip-api-prefix@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

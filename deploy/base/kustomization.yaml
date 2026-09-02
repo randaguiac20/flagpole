@@ -9,6 +9,7 @@ resources:
   - postgres/service.yaml
   - api/deployment.yaml
   - api/service.yaml
+  - api/middleware.yaml
   - consumer/deployment.yaml
   - consumer/service.yaml
   - web/deployment.yaml
