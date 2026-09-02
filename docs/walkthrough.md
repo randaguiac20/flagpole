@@ -162,3 +162,31 @@ SC-003  against a server that accepts and never answers, ceiling 2.0s:
 ```
 
 `make test`: 29 hook + 46 backend + 47 consumer + 44 frontend.
+
+### The 003 review (2026-09-02)
+
+`code-reviewer`, read-only, with the new authentication path as its target: **request-changes**, 15
+findings, each confirmed by running a probe rather than by reading. Three produced a server error
+where a refusal belonged — a missing service key taking down *all* authentication including people's
+sign-ins, a token whose payload decodes to a list crashing the service for an anonymous caller, and
+the consumer's fail-safe leaking a 500 when its signing key was unusable.
+
+The bug worth remembering: `bool(body["enabled"])` reads the string `"false"` as true, so a drifted
+service would have shown the banner with the flag off. Typing the response was **not** enough —
+pydantic's ordinary coercion also accepts `"yes"` — and my own new test caught that, which is why the
+boundary now uses a strict boolean.
+
+Two findings changed the contract rather than the code, both decided by the user:
+
+| Question | Decision | Why |
+|---|---|---|
+| Should a service token name its environment? | Yes, and the service pins it | Nothing forced `dev` and `prod` to use different key pairs, so key separation was not a boundary anything enforced |
+| Should a rotated key be picked up without a restart? | No — cached for the process lifetime | A mounted secret changing restarts the pod anyway; live reloading is complexity with no trigger, and the posture is now written into the contract |
+
+Verified live afterwards: the same consumer reads `env_disabled` from a `dev` service and gets
+`service_unavailable` with a logged `401` the moment that service is told it serves `prod`.
+
+`contracts/service-token.json` now holds the machine-readable slice both suites assert against, so a
+drift in claim names, algorithm or lifetime fails a test instead of only the demo.
+
+`make test` after the fixes: 29 hook + 55 backend + 59 consumer + 44 frontend.

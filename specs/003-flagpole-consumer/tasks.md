@@ -61,8 +61,8 @@ may run together.
 - [X] T027 Verify every anchor in `contracts/page-contract.md` exists in the templates, and every claim in `contracts/service-token.md` is asserted by a test
 - [X] T028 Measure, never assert: record how long a page load takes with the flag service healthy and with it hung, and confirm the hung case ends at the wait ceiling rather than hanging (SC-003, constitution III). Run the quickstart by hand against a live flag service: US1 on and off, US2 with the service stopped, US3 for two users; record the real output in `quickstart.md`
 - [X] T029 `make test` and `make test-fast` include the consumer; `make dev` starts it; `docs/dependencies.md` gains the consumer's table
-- [ ] T030 Add the 003 row to `docs/walkthrough.md` with real output, and a decision record if this feature introduced a Claude Code component (it should not — say so if not)
-- [ ] T031 Run the `code-reviewer` agent on the branch diff; fix findings; merge to `main`
+- [X] T030 Add the 003 row to `docs/walkthrough.md` with real output, and a decision record if this feature introduced a Claude Code component (it should not — say so if not)
+- [X] T031 Run the `code-reviewer` agent on the branch diff; fix findings; merge to `main`
 
 ## Requirement coverage
 
