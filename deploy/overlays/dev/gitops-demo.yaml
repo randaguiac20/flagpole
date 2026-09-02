@@ -1,0 +1,8 @@
+# A resource that exists only to be removed again, demonstrating that the reconciler prunes what
+# leaves the repository (FR-006, SC-003). Deleted in the commit right after the one that adds it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagpole-gitops-demo
+data:
+  note: "added in git, therefore present in the cluster"
