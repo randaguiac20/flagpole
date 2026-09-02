@@ -10,6 +10,7 @@ repos:
         args: [--allow-multiple-documents]
         exclude: ^(deploy/|clusters/)  # SOPS-encrypted files are valid YAML but kustomize-only; checked by kustomize build in CI
       - id: check-json
+        exclude: ^frontend/tsconfig.*\.json$  # tsconfig is JSONC: TypeScript allows comments, python json does not
       - id: check-added-large-files
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1

@@ -2,7 +2,17 @@
 
 A small feature-flag service (FastAPI · React · k3d · Flux · SOPS/age · Renovate · Dex) whose real purpose is to teach **when, where and how far** to use each Claude Code extension mechanism, built through **Spec-Driven Development** with GitHub Spec Kit.
 
-> Status: Phase 2 (Claude Code scaffolding + SDD bootstrap) complete. Features 001–006 follow, each on its own spec branch. See `docs/BLUEPRINT.md` for the exact steps so far.
+> Status: features 001-flagpole-api and 002-flagpole-web are done. 003–006 follow, each on its own spec branch. See `docs/BLUEPRINT.md` for the exact steps so far and `docs/walkthrough.md` for the real output of each one.
+
+## Run it locally
+
+```
+make dev     # Dex :18030, API :18000, web :18010 — sign in as alice@flagpole.local / flagpole
+make test    # hook tests, backend tests, contract drift check, frontend tests
+make e2e     # Playwright; starts everything it needs itself
+```
+
+Demo users are static and local only: `alice` has the operator role, `bob` the viewer role.
 
 ## Quickstart (5 minutes, after Phase 4 lands)
 

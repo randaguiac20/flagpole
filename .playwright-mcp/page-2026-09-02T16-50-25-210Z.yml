@@ -1,0 +1,6 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "Flagpole" [level=1] [ref=e5]
+    - button "Sign in" [ref=e6] [cursor=pointer]
+  - main [ref=e7]:
+    - paragraph [ref=e8]: Sign in to see and change feature flags.

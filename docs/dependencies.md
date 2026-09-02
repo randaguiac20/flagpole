@@ -23,6 +23,27 @@ Every dependency: maintained upstream, pinned by `uv.lock` / `package-lock.json`
 
 flux2 2.9.5 · trivy 0.74.0 · hadolint 2.15.1 · osv-scanner 2.5.1 · yq 4.53.6 · sops 3.13.3 · age 1.3.1 · k3d 5.9.0 · specify-cli v1.0.3 · pip-audit 2.10.1 · bandit 1.9.4 · semgrep 1.176.0 · ruff 0.16.5 · gitleaks 8.30.1 · pre-commit hooks pinned in `.pre-commit-config.yaml`.
 
-## Frontend, consumer, MCP server, platform charts
+## frontend (`frontend/package.json`, spec 002-flagpole-web)
 
-Added by features 002–005.
+| Package | Version | Why | Source |
+|---|---|---|---|
+| react, react-dom | 19.2.8 | UI runtime | https://react.dev |
+| vite | 8.2.2 | dev server with the `/api` proxy and the production build | https://vite.dev |
+| typescript | 5.9.3 | types; pinned to 5.x because `openapi-typescript` requires that peer | https://www.typescriptlang.org |
+| oidc-client-ts | 3.5.0 | Authorization Code + PKCE in the browser, token held in memory | https://github.com/authts/oidc-client-ts |
+| openapi-fetch | 0.17.0 | typed fetch client driven by the generated schema | https://openapi-ts.dev/openapi-fetch/ |
+| openapi-typescript (dev) | 7.13.0 | generates `src/api/schema.d.ts` from the 001 contract; `--check` catches drift | https://openapi-ts.dev/cli |
+| vitest, jsdom (dev) | 4.1.11, 30.0.1 | component tests | https://vitest.dev |
+| @testing-library/{react,dom,user-event,jest-dom} (dev) | 16.3.3, 10.4.1, 14.6.7, 7.0.1 | user-centric component assertions (`dom` is a required peer of `react`) | https://testing-library.com |
+| @playwright/test (dev) | 1.62.1 | end-to-end against the real identity provider | https://playwright.dev |
+| oxlint (dev) | 1.79 | fast lint pass from the Vite template | https://oxc.rs |
+
+## Container images
+
+| Image | Tag | Why |
+|---|---|---|
+| ghcr.io/dexidp/dex | v2.45.1 | local OIDC provider for development and end-to-end tests (same version in the cluster in 005) |
+
+## Consumer, MCP server, platform charts
+
+Added by features 003–005.

@@ -5,7 +5,7 @@ Rule (PROMPT.md §5.6, constitution V): nothing binds a port that `scripts/ports
 | Service | Where | Port | Set by | Checked by |
 |---|---|---|---|---|
 | flagpole-api (uvicorn) | host, `make dev` | 18000 | `FLAGPOLE_API_PORT` | `scripts/ports.sh check` in `scripts/dev.sh` |
-| flagpole-web (Vite) | host, `make dev` | 18010 | `FLAGPOLE_WEB_PORT` | same |
+| flagpole-web (Vite) | host, `make dev` | 18010 | `FLAGPOLE_WEB_PORT` | `strictPort: true`; verified 2026-09-02 |
 | flagpole-consumer | host, `make dev` | 18020 | `FLAGPOLE_CONSUMER_PORT` | same |
 | Dex (docker compose, dev) | host | 18030 | `FLAGPOLE_DEX_PORT` | same |
 | PostgreSQL (docker compose, optional) | host | 18040 | `FLAGPOLE_POSTGRES_PORT` | same |
