@@ -383,7 +383,10 @@ export interface components {
             flag_key: string;
             env: components["schemas"]["Env"] | null;
             before: components["schemas"]["EnvState"] | null;
-            after: Record<string, never>;
+            after: components["schemas"]["EnvState"] | components["schemas"]["FlagCreation"];
+        };
+        FlagCreation: {
+            description: string;
         };
         AuditPage: {
             items: components["schemas"]["AuditEntry"][];

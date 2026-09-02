@@ -1,6 +1,7 @@
 // Session state. Spec: 002-flagpole-web FR-001..004 (research F2: Dex has no end_session_endpoint).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UserManager } from "oidc-client-ts";
+import { configProblem, resolveOidcConfig } from "./config";
 import { createUserManager, sessionFromUser } from "./userManager";
 import type { Session } from "./userManager";
 
@@ -29,6 +30,11 @@ function exchangeOnce(userManager: UserManager, url: string): Promise<Session> {
   return callbackExchange.promise;
 }
 
+/** The memoised promise resolves to a Session holding the access token, so sign-out must drop it (FR-003). */
+function forgetExchange(): void {
+  callbackExchange = null;
+}
+
 export function useSession(manager?: UserManager): UseSession {
   const userManager = useMemo(() => manager ?? createUserManager(), [manager]);
   const [session, setSession] = useState<Session | null>(null);
@@ -43,16 +49,26 @@ export function useSession(manager?: UserManager): UseSession {
       setStatus(s ? "signed-in" : "signed-out");
     };
     const run = async () => {
+      const problem = configProblem(resolveOidcConfig(), window.location);
+      if (problem) {
+        setNotice(problem);
+        finish(null);
+        return;
+      }
       try {
         if (window.location.pathname === "/callback") {
-          const session = await exchangeOnce(userManager, window.location.href);
-          window.history.replaceState({}, "", "/");
-          finish(session);
+          try {
+            finish(await exchangeOnce(userManager, window.location.href));
+          } finally {
+            // Off the address bar and out of history either way: on failure the code is spent anyway.
+            window.history.replaceState({}, "", "/");
+          }
           return;
         }
         const user = await userManager.getUser();
         finish(user && !user.expired ? sessionFromUser(user) : null);
-      } catch {
+      } catch (error) {
+        console.error("flagpole: sign-in failed", error);
         if (!cancelled) setNotice("Sign-in failed. Please try again.");
         finish(null);
       }
@@ -70,6 +86,7 @@ export function useSession(manager?: UserManager): UseSession {
 
   // Dex 2.45.1 publishes no end_session_endpoint, so sign-out drops the token locally (research F2).
   const signOut = useCallback(async () => {
+    forgetExchange();
     await userManager.removeUser();
     setSession(null);
     setStatus("signed-out");
@@ -77,6 +94,7 @@ export function useSession(manager?: UserManager): UseSession {
   }, [userManager]);
 
   const onUnauthenticated = useCallback(() => {
+    forgetExchange();
     void userManager.removeUser();
     setSession(null);
     setStatus("signed-out");

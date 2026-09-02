@@ -14,12 +14,12 @@ interface AuditListProps {
 }
 
 function describe(entry: AuditEntry): string {
-  if (entry.env === null || entry.env === undefined) return "created";
-  const before = entry.before;
-  const after = entry.after as { enabled?: boolean; rollout_percent?: number };
-  const fmt = (s?: { enabled?: boolean; rollout_percent?: number } | null) =>
+  // The contract gives `after` two shapes: an environment state, or a creation's description.
+  const after = entry.after;
+  if (!("enabled" in after)) return "created";
+  const fmt = (s: { enabled: boolean; rollout_percent: number } | null) =>
     s ? `${s.enabled ? "on" : "off"} / ${s.rollout_percent}%` : "—";
-  return `${fmt(before)} → ${fmt(after)}`;
+  return `${fmt(entry.before)} → ${fmt(after)}`;
 }
 
 export function AuditList({
@@ -73,8 +73,13 @@ export function AuditList({
       </table>
       {items.length === 0 && status === "ready" ? <p>No entries yet.</p> : null}
       {nextBefore !== null ? (
-        <button type="button" data-testid="audit-load-more" onClick={onLoadMore}>
-          Load older entries
+        <button
+          type="button"
+          data-testid="audit-load-more"
+          onClick={onLoadMore}
+          disabled={status === "loading"}
+        >
+          {status === "loading" ? "Loading…" : "Load older entries"}
         </button>
       ) : null}
     </section>

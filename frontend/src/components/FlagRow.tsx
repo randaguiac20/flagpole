@@ -1,5 +1,5 @@
 // One flag row for the selected environment. Spec: 002-flagpole-web FR-006..009 (US3-1,2,3,4).
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Env, EnvState, Flag } from "../api/client";
 
 export interface FlagRowProps {
@@ -12,38 +12,48 @@ export interface FlagRowProps {
 const same = (a: EnvState, b: EnvState) =>
   a.enabled === b.enabled && a.rollout_percent === b.rollout_percent;
 
+const ROLLOUT_HINT = "Rollout must be a whole number between 0 and 100.";
+
 export function FlagRow({ flag, env, canEdit, onSave }: FlagRowProps) {
   const saved = flag.environments[env];
-  const [draft, setDraft] = useState<EnvState>(saved);
-  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [message, setMessage] = useState<string | null>(null);
+  // A pending edit belongs to one (flag, env). Drafts are held per environment, so switching tabs
+  // and switching back returns the operator to their own unsaved edit instead of discarding it.
+  const [drafts, setDrafts] = useState<Partial<Record<Env, EnvState>>>({});
+  const [saving, setSaving] = useState(false);
+  // A save failure belongs to the environment it happened in, so it is stored with that environment
+  // and simply not shown in the other one — no effect needed to clear it.
+  const [failure, setFailure] = useState<{ env: Env; text: string } | null>(null);
 
-  // A pending edit belongs to one (flag, env): switching tabs shows that environment's own draft.
-  useEffect(() => {
-    setDraft(saved);
-    setStatus("idle");
-    setMessage(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flag.key, env, saved.enabled, saved.rollout_percent]);
-
+  const draft = drafts[env] ?? saved;
   const dirty = !same(draft, saved);
+  const message = failure?.env === env ? failure.text : null;
+
+  const setDraft = (next: EnvState) => setDrafts((current) => ({ ...current, [env]: next }));
+
+  const rolloutValid =
+    Number.isInteger(draft.rollout_percent) &&
+    draft.rollout_percent >= 0 &&
+    draft.rollout_percent <= 100;
 
   const save = async () => {
-    setStatus("saving");
-    setMessage(null);
+    setSaving(true);
+    setFailure(null);
     try {
       await onSave(flag.key, env, draft);
-      setStatus("idle");
+      // Dropped here, not when the parent's values change: an idempotent save returns what was
+      // already stored, so waiting for a value to change would leave the row dirty forever.
+      setDrafts((current) => ({ ...current, [env]: undefined }));
     } catch (err) {
       // The draft is kept so the operator does not lose the edit (FR-009).
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "could not save the flag");
+      setFailure({ env, text: err instanceof Error ? err.message : "could not save the flag" });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const rolloutValid = Number.isInteger(draft.rollout_percent) &&
-    draft.rollout_percent >= 0 &&
-    draft.rollout_percent <= 100;
+  // Save is disabled for an out-of-range rollout (FR-008); say why, so it is not mistaken for the
+  // viewer's disabled controls.
+  const shown = message ?? (dirty && !rolloutValid ? ROLLOUT_HINT : null);
 
   return (
     <tr data-testid={`flag-row-${flag.key}`}>
@@ -82,7 +92,10 @@ export function FlagRow({ flag, env, canEdit, onSave }: FlagRowProps) {
             value={Number.isNaN(draft.rollout_percent) ? "" : draft.rollout_percent}
             disabled={!canEdit}
             onChange={(e) =>
-              setDraft({ ...draft, rollout_percent: e.target.value === "" ? NaN : Number(e.target.value) })
+              setDraft({
+                ...draft,
+                rollout_percent: e.target.value === "" ? NaN : Number(e.target.value),
+              })
             }
           />
         </label>
@@ -92,14 +105,14 @@ export function FlagRow({ flag, env, canEdit, onSave }: FlagRowProps) {
         <button
           type="button"
           data-testid={`flag-save-${flag.key}`}
-          disabled={!canEdit || !dirty || !rolloutValid || status === "saving"}
+          disabled={!canEdit || !dirty || !rolloutValid || saving}
           onClick={save}
         >
-          {status === "saving" ? "Saving…" : "Save"}
+          {saving ? "Saving…" : "Save"}
         </button>
-        {message ? (
+        {shown ? (
           <span className="error" role="alert" data-testid={`flag-error-${flag.key}`}>
-            {message}
+            {shown}
           </span>
         ) : null}
       </td>

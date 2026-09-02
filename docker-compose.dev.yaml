@@ -9,7 +9,8 @@ services:
     ports:
       - "127.0.0.1:${FLAGPOLE_DEX_PORT:-18030}:5556"
     volumes:
-      - ./dex/dev-config.yaml:/etc/dex/config.yaml:ro
+      # Rendered from dex/dev-config.yaml.tmpl by scripts/dex-config.sh (ports come from .env).
+      - ./dex/.dev-config.yaml:/etc/dex/config.yaml:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5556/dex/.well-known/openid-configuration"]
       interval: 5s

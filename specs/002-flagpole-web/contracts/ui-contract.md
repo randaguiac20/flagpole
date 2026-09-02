@@ -15,7 +15,7 @@ The stable surface end-to-end tests and the `ui-tester` agent depend on (FR-012)
 | `flag-rollout-<key>` | number input 0–100 | rollout of the selected environment; `disabled` for viewers |
 | `flag-save-<key>` | button | enabled only when the row is dirty and the user is an operator |
 | `flag-dirty-<key>` | marker | present only when the row has unsaved edits |
-| `flag-error-<key>` | text | the service's message after a refused save |
+| `flag-error-<key>` | text | the service's message after a refused save, or why an out-of-range rollout cannot be saved; `role="alert"` |
 | `create-key`, `create-description`, `create-submit` | inputs + button | create form; `disabled` for viewers |
 | `create-error` | text | the service's message after a refused create; `role="alert"` |
 | `viewer-hint` | text | present exactly once on the flags view for viewers (FR-007 scopes it there; the audit view is read-only for everyone) |

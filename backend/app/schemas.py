@@ -54,6 +54,12 @@ class EvaluateResponse(BaseModel):
     reason: Reason
 
 
+class FlagCreation(BaseModel):
+    """The `after` state of a creation entry (FR-005; data-model.md)."""
+
+    description: str
+
+
 class AuditEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
@@ -62,7 +68,7 @@ class AuditEntryOut(BaseModel):
     flag_key: str
     env: Env | None
     before: EnvState | None
-    after: dict
+    after: EnvState | FlagCreation
 
     @field_serializer("at")
     def _utc(self, value: datetime) -> str:

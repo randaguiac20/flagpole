@@ -64,3 +64,85 @@ describe("flag row (US3)", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 });
+
+it("marks only the edited row dirty (US3-2)", async () => {
+  render(
+    <table>
+      <tbody>
+        <FlagRow flag={flag("flag_a")} env="dev" canEdit onSave={vi.fn()} />
+        <FlagRow flag={flag("flag_b")} env="dev" canEdit onSave={vi.fn()} />
+      </tbody>
+    </table>,
+  );
+
+  await userEvent.click(screen.getByTestId("flag-enabled-flag_a"));
+
+  expect(screen.getByTestId("flag-dirty-flag_a")).toBeInTheDocument();
+  expect(screen.queryByTestId("flag-dirty-flag_b")).not.toBeInTheDocument();
+  expect(screen.getByTestId("flag-save-flag_b")).toBeDisabled();
+});
+
+it("keeps an edit made in the other environment when the tab comes back (FR-006)", async () => {
+  const { rerender } = render(
+    <table>
+      <tbody>
+        <FlagRow flag={flag("flag_a")} env="dev" canEdit onSave={vi.fn()} />
+      </tbody>
+    </table>,
+  );
+
+  await userEvent.clear(screen.getByTestId("flag-rollout-flag_a"));
+  await userEvent.type(screen.getByTestId("flag-rollout-flag_a"), "40");
+
+  const rowFor = (env: "dev" | "prod") => (
+    <table>
+      <tbody>
+        <FlagRow flag={flag("flag_a")} env={env} canEdit onSave={vi.fn()} />
+      </tbody>
+    </table>
+  );
+  rerender(rowFor("prod"));
+  expect(screen.getByTestId("flag-rollout-flag_a")).toHaveValue(0);
+
+  rerender(rowFor("dev"));
+  expect(screen.getByTestId("flag-rollout-flag_a")).toHaveValue(40);
+});
+
+it("explains an out-of-range rollout instead of only disabling save (FR-008)", async () => {
+  render(
+    <table>
+      <tbody>
+        <FlagRow flag={flag("flag_a")} env="dev" canEdit onSave={vi.fn()} />
+      </tbody>
+    </table>,
+  );
+
+  await userEvent.clear(screen.getByTestId("flag-rollout-flag_a"));
+  await userEvent.type(screen.getByTestId("flag-rollout-flag_a"), "150");
+
+  expect(screen.getByTestId("flag-save-flag_a")).toBeDisabled();
+  expect(screen.getByTestId("flag-error-flag_a")).toHaveTextContent(/between 0 and 100/i);
+});
+
+it("clears the dirty marker after a save the service answers with unchanged values (FR-009)", async () => {
+  // An idempotent write returns what was already stored, so nothing about the flag prop changes.
+  // Waiting for a changed value would leave the row dirty forever.
+  const onSave = vi.fn().mockResolvedValue(undefined);
+  render(
+    <table>
+      <tbody>
+        <FlagRow flag={flag("flag_a")} env="dev" canEdit onSave={onSave} />
+      </tbody>
+    </table>,
+  );
+
+  await userEvent.click(screen.getByTestId("flag-enabled-flag_a"));
+  expect(screen.getByTestId("flag-dirty-flag_a")).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId("flag-save-flag_a"));
+
+  await waitFor(() =>
+    expect(screen.queryByTestId("flag-dirty-flag_a")).not.toBeInTheDocument(),
+  );
+  expect(onSave).toHaveBeenCalledWith("flag_a", "dev", { enabled: true, rollout_percent: 0 });
+});

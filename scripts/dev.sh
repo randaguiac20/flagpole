@@ -21,6 +21,8 @@ cleanup() {
 # EXIT alone: INT and TERM both end in EXIT, and trapping all three ran cleanup twice.
 trap cleanup EXIT
 
+scripts/dex-config.sh
+
 echo "== identity provider on :$DEX_PORT"
 if ! curl -sf "http://localhost:$DEX_PORT/dex/.well-known/openid-configuration" >/dev/null 2>&1; then
   scripts/ports.sh check "$DEX_PORT"

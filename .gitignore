@@ -43,3 +43,6 @@ trivy-*.json
 # --- feature 002: local e2e artifacts ---
 backend/e2e.db
 frontend/test-results/
+
+# rendered from dex/dev-config.yaml.tmpl by scripts/dex-config.sh
+dex/.dev-config.yaml

@@ -129,7 +129,12 @@ components:
         flag_key: {type: string}
         env: {oneOf: [{$ref: "#/components/schemas/Env"}, {type: "null"}]}
         before: {oneOf: [{$ref: "#/components/schemas/EnvState"}, {type: "null"}]}
-        after: {type: object}
+        after: {anyOf: [{$ref: "#/components/schemas/EnvState"}, {$ref: "#/components/schemas/FlagCreation"}]}
+    FlagCreation:
+      type: object
+      required: [description]
+      properties:
+        description: {type: string}
     AuditPage:
       type: object
       required: [items, next_before]

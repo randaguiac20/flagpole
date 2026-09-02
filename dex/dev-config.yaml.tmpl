@@ -1,8 +1,9 @@
 # Dex for LOCAL DEVELOPMENT ONLY. Spec: 002-flagpole-web (research F5).
 # The cluster gets the same users through a HelmRelease in feature 005; these credentials are demo
 # data, not secrets (the password is "flagpole" and is printed in the quickstart).
-# Ports are literals because Dex reads a static file: keep them in sync with docs/ports.md.
-issuer: http://localhost:18030/dex
+# Dex reads a static file, so the ports are substituted from the environment by scripts/dex-config.sh
+# into dex/.dev-config.yaml (gitignored), which docker compose mounts. Never edit that copy.
+issuer: http://localhost:${FLAGPOLE_DEX_PORT}/dex
 
 storage:
   type: memory
@@ -11,7 +12,7 @@ web:
   http: 0.0.0.0:5556
   # CORS for the browser token exchange (/token, /keys, discovery). /auth is a top-level navigation.
   allowedOrigins:
-    - http://localhost:18010
+    - http://localhost:${FLAGPOLE_WEB_PORT}
 
 oauth2:
   responseTypes: ["code"]
@@ -22,7 +23,7 @@ staticClients:
     name: Flagpole Web
     public: true            # PKCE, no client secret in the browser (FR-001)
     redirectURIs:
-      - http://localhost:18010/callback
+      - http://localhost:${FLAGPOLE_WEB_PORT}/callback
 
 enablePasswordDB: true
 staticPasswords:

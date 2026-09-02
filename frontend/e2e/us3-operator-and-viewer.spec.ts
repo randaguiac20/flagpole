@@ -24,7 +24,8 @@ test("US3-1 an operator toggles a flag and sets its rollout", async ({ page }) =
 
 test("US3-5 an operator creates a flag; a duplicate key shows the conflict message", async ({ page }) => {
   await signIn(page, "operator");
-  const key = `demo_${Date.now().toString(36)}`;
+  // Fixed, not clock-derived: the suite starts from a fresh database, so the key is free every run.
+  const key = "demo_created_by_e2e";
   await page.getByTestId("create-key").fill(key);
   await page.getByTestId("create-description").fill("created by the e2e suite");
   await page.getByTestId("create-submit").click();
