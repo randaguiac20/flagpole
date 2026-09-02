@@ -318,3 +318,116 @@ consumer:   59 passed
 mcp:        61 passed
 frontend:   44 passed (10 files)
 ```
+
+## Phase 4 — feature 005-platform-delivery via the SDD loop (2026-09-02)
+
+Two questions were put to the user before any manifest was written, because either answer changed
+them materially: **one database per environment** (so isolation is something the network enforces,
+not something credentials claim) and **bootstrap rather than a read-only source** (so upgrading the
+reconciler is also a commit). Both are recorded as clarifications in the spec.
+
+`scripts/verify-cluster.sh` was written **first**, against an empty cluster, and failed 37 of 42.
+A check written after the manifests tends to describe whatever they happen to do.
+
+### What running it disproved
+
+Five things were wrong in ways that reading could not have caught. Each is now a gotcha.
+
+| What failed | Why | Gotcha |
+|---|---|---|
+| Nothing installed at all | Flux dry-runs a Kustomization's **whole** set, so `ClusterIssuer` in the same unit as cert-manager aborted the apply that would have installed cert-manager. A deadlock, not a delay. | #30 |
+| Traefik install rejected | Chart 41.x moved `redirections` and `tls` under `http`, and split `logs` into `log` and `accessLog`. | — |
+| Dex pods never created | The chart sets no security context and the namespace enforces `restricted`; the HelmRelease said only "timeout waiting for Deployment" and the real reason was in the ReplicaSet's events. | #31 |
+| Dex crash-looped | It expands its config into `/tmp`, which a read-only root filesystem forbids. | — |
+| The operator-grant check passed for the wrong reason | It read the container's inline `env`, but the setting arrives through `envFrom` — so "absent" was both what it expected and all it could ever find. A check that cannot fail is not a check. | #32 |
+
+And two the cluster caught that a local run never would:
+
+- **The ingress passed `/api` through unchanged.** The development proxy strips it, so every API call
+  would have worked locally and 404'd in the cluster. A strip-prefix middleware fixes it — and being
+  a Traefik custom resource, it needed the same `dependsOn` lesson as the certificate authority.
+- **The consumer could not reach the flag service.** Deny-first network policy admitted only Traefik
+  to the flag service, so evaluation was refused at the far end. The consumer did exactly what it
+  should — HTTP 200, `service_unavailable`, no banner — which is precisely why this looked like a
+  working system. A fail-safe hides a broken dependency; the check has to assert the *reason*.
+
+### The cluster, verified
+
+```
+$ flux get kustomizations
+flagpole-dev     005-platform-delivery@sha1:...  True  Applied revision
+flagpole-prod    005-platform-delivery@sha1:...  True  Applied revision
+flux-system      005-platform-delivery@sha1:...  True  Applied revision
+platform         005-platform-delivery@sha1:...  True  Applied revision
+platform-issuer  005-platform-delivery@sha1:...  True  Applied revision
+
+$ scripts/verify-cluster.sh
+43 passed, 0 failed
+```
+
+The assistant's own MCP server, pointed at each environment through the ingress (SC-007):
+
+```
+dev   list_flags      -> {"flags": [{"key": "new_banner", ...}]}
+dev   set_flag_state  -> {"flag": {"environments": {"dev": {"enabled": true, "rollout_percent": 100}}}}
+prod  list_flags      -> {"error": {"kind": "unauthorized", "message": "... refused this server's credentials."}}
+prod  set_flag_state  -> {"error": {"kind": "unauthorized", "message": "... refused this server's credentials."}}
+```
+
+Production refuses it at *authentication*, not authorization: that overlay names no slot for the
+assistant's issuer at all, so the public key it holds is inert. That is stronger than the design
+described, and the comment beside the secret was corrected to say so.
+
+Then the two consumers, with nothing restarted (SC-002):
+
+```
+consumer.dev.flagpole.localhost    enabled=true   reason=rollout_hit
+consumer.prod.flagpole.localhost   enabled=false  reason=env_disabled
+```
+
+Each environment shows its own state. Isolation, from a pod that was already running:
+
+```
+PASS  flagpole-dev cannot reach flagpole-prod on 5432
+PASS  flagpole-prod cannot reach flagpole-dev on 5432
+PASS  flagpole-dev rejects a privileged Pod
+PASS  flagpole-prod rejects a privileged Pod
+```
+
+GitOps, both directions (SC-003):
+
+```
+$ git commit && git push && flux reconcile ...
+  after the commit:            flagpole-gitops-demo   1   3s
+$ git rm && git commit && git push && flux reconcile ...
+  after removing it from git:  Error from server (NotFound): configmaps "flagpole-gitops-demo" not found
+```
+
+And the guard, refusing to let the cluster be edited by hand at all:
+
+```
+$ kubectl scale deploy/flagpole-api -n flagpole-dev --replicas=3
+gitops-guard: 'kubectl scale' outside flux-system is denied. Flux owns this cluster: edit the
+manifest under deploy/, commit, then run 'flux reconcile kustomization <name> --with-source'.
+```
+
+### Two things you must run yourself
+
+The guard is stricter than the plan described — it refuses hand edits in **every** namespace but
+`flux-system`, not only `flagpole-*`. So drift correction cannot be demonstrated from inside a
+session without disabling the guard, which would be the wrong lesson. Run it yourself:
+
+```
+! kubectl -n traefik scale deploy/traefik --replicas=3   # then watch Flux put it back
+```
+
+And to open the hosts in your own browser without a certificate warning, trust the cluster's CA. This
+needs `sudo`, so it is printed and not run:
+
+```
+kubectl -n cert-manager get secret flagpole-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/flagpole-ca.crt
+sudo cp /tmp/flagpole-ca.crt /usr/local/share/ca-certificates/flagpole-ca.crt && sudo update-ca-certificates
+```
+
+`.mcp.json` now passes `--ignore-https-errors` to the Playwright server so the `ui-tester` agent can
+reach the cluster hosts; that takes effect in a new session.

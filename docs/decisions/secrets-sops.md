@@ -1,0 +1,7 @@
+# Decision: SOPS + age, encrypting only the values
+
+- **Problem / trigger**: the repository is public and the cluster needs passwords and signing keys. Committing them in the clear would be the single worst outcome of this feature.
+- **Alternative rejected**: Sealed Secrets (a controller and a cluster-specific key, so the same file cannot be decrypted on the machine that wrote it); an external secret manager (a service, an account and a network dependency for a local cluster); keeping secrets out of git and applying them by hand (then the cluster is no longer defined by the repository, which is the whole feature).
+- **Limits**: `.sops.yaml` encrypts `data` and `stringData` only, under `deploy/` and `clusters/`. Keys, names and namespaces stay readable so a change can still be reviewed — an unreviewable diff is what makes people work around a secret store. The private key lives at `~/.config/sops/age/flagpole.agekey`, outside the repository, with no backup; `docs/secrets-sops.md` says what that costs and how to recover.
+- **Not done**: no key rotation schedule, no per-environment recipients (one key for a demo), no encryption of the Dex demo passwords — they are printed in the walkthrough, and encrypting a published value teaches the ceremony without the reason.
+- **Verification** (2026-09-02): every committed Secret shows `ENC[AES256_GCM,...]` for every value; `gitleaks detect` over all commits reports no leaks; the session hook and the pre-commit check both refuse a plaintext Secret; the cluster decrypts and the applications start.

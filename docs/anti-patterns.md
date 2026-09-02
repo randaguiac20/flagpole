@@ -15,3 +15,15 @@ For every mechanism: the misuse, why it hurts, and what Flagpole does instead. P
 | **MCP** | `cluster-status-mcp` wrapping `kubectl get` and `flux get`; an HTTP MCP server binding a port so two sessions can share it; API keys in `.mcp.json`. | Wrapping a CLI adds a process, a schema and a failure mode for data Bash already returns; ports collide; secrets in a committed file. | Cut it (`docs/decisions/cluster-status-mcp.md`); stdio only; `${VAR}` expansion, no secrets. |
 | **Plugins** | Packaging this repo's agents/skills/hooks as a plugin "for completeness" while no second repo exists; or duplicating them (plugin *and* `.claude/`). | Two sources of truth; namespaced names (`/flagpole-tools:deploy-local`) confuse the walkthrough; plugin hooks need `/reload-plugins`. | Phase 6 moves (not copies) the components and states the honest trigger: the learning goal. |
 | **SDD (Spec Kit)** | A spec for "fix the typo in the README"; running `/speckit-implement` without `/speckit-analyze`; a constitution that lists the build commands; a spec that is updated after the code "to match". | Specs for chores are noise; skipping analyze ships inconsistencies; constitution/CLAUDE.md duplication drifts; a spec that follows code is documentation, not a source of truth. | Chores have decision records, not specs; analyze is a gate; constitution = principles, CLAUDE.md = facts; spec changes first. |
+
+## Feature 005 — platform delivery
+
+| Not built | Why | The signal that would change it |
+|---|---|---|
+| A database operator | A controller, its custom resources and an upgrade story, to run one database holding a handful of rows. | More than one database, or a real recovery requirement. |
+| A second cluster for "production" | The lesson is the overlay boundary, the network policy and the absent grant — all of which are real here. A second control plane adds cost and teaches nothing new. | An actual production deployment, where the control plane boundary stops being decorative. |
+| A service mesh | Nothing here needs mutual TLS between three services, and a mesh would double the moving parts a reader has to hold. | Traffic policy or identity between many services. |
+| A monitoring stack | `/metrics` exists on every service; scraping it is a separate lesson with its own spec. | Anyone asking a question the logs cannot answer. |
+| A registry beside the cluster | `k3d image import` is one command and one fewer component to trust. Feature 006 publishes to ghcr, and the manifests already name the published image. | Images needed by something outside this machine. |
+| Backups of the demo database | The cluster is disposable and says so. A backup nobody restores is theatre. | Data anyone would miss. |
+| Image automation in Flux | Renovate covers it in feature 006, and two mechanisms updating the same tag is a conflict waiting to happen. | Renovate proving insufficient. |
