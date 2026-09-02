@@ -1,0 +1,20 @@
+# Gotchas — where the docs, the tools and PROMPT.md disagreed
+
+Each entry: what we expected, what is actually true (with the source), what we did. Newest at the bottom.
+
+| # | Expected (PROMPT.md or memory) | Actually true | What we did |
+|---|---|---|---|
+| 1 | Spec Kit installs `/speckit.constitution` (dot) as `.claude/commands/*.md` | v1.0.3 installs **skills** `.claude/skills/speckit-*/SKILL.md`, invoked as `/speckit-constitution` (hyphen, `invoke_separator: "-"` in `.specify/integration.json`). Also adds `/speckit-converge` and `/speckit-taskstoissues`. | Use hyphenated names everywhere; document the two extra commands as unused. |
+| 2 | `specify init --no-git` exists | It does not in v1.0.3; `--here --force --non-interactive --integration claude --script sh` is the scripted form. | Used that form. |
+| 3 | ingress-nginx + cert-manager for ingress | ingress-nginx was retired (repo archived 2026-03-24, no security fixes; kubernetes.io says do not deploy it). kind's own docs now point to Gateway API. | Traefik from the official chart as `HelmRelease/traefik`, plain `Ingress` kept. Confirmed by the user. |
+| 4 | The hook `terminalSequence` field does not exist (a research subagent said so) | It exists: hooks reference, "Emit terminal notifications" (OSC 0/1/2/9/99/777 + BEL). The subagent summarized a page instead of reading it. | Used it in `notify.sh`. Lesson: verify field names against the source text, not a summary. |
+| 5 | A hook `if: "Edit(deploy/**)"` on `matcher: Edit\|Write` covers Write calls too (permission rules treat `Edit(path)` as covering all file writes) | A hook `if` matches **only the tool it names**: with `Edit(...)` the hook never ran on a `Write` (probe on 2026-09-02, nothing in `hooks.log`); with `Write(...)` it did. | Two handlers per path prefix. For the formatter, dropped `if` and let the script switch on the extension. |
+| 6 | New skills/agents are picked up live | Skills: yes, but only if the top-level `.claude/skills/` directory existed at session start; agents: same for `.claude/agents/`. Both were created mid-session here. | The Skill tool could not see `speckit-constitution`; the constitution was written by following the skill's steps by hand. Restart before the walkthrough. |
+| 7 | `${CLAUDE_PROJECT_DIR}` expands in `.mcp.json` | Only with a default: `${CLAUDE_PROJECT_DIR:-.}` (the variable is set in the *server's* environment, not Claude Code's). | Used the default form for the Playwright output dir. |
+| 8 | MCP Python SDK: `from mcp.server.fastmcp import FastMCP` | SDK v2 renamed it: `from mcp.server import MCPServer`; in-memory tests use `from mcp import Client`. | Feature 004 uses the v2 API. |
+| 9 | Renovate `fileMatch`, `uv` manager | Key is `managerFilePatterns`; there is no `uv` manager, `pep621` handles `pyproject.toml` + `uv.lock`; `flux`/`kubernetes` managers need explicit patterns; `pre-commit` manager is off by default. | Feature 006 config follows the current names. |
+| 10 | PROMPT.md §5.5 wants a `PreToolUse` deny hook for `kubectl delete` / `git push --force`, §2.4 says prefer `permissions.deny` | The hooks reference says the `if` filter is best-effort and "use the permission system rather than a hook to enforce a hard allow or deny". | Plain blocks → `permissions.deny`; the Bash hook guards the argument-dependent case (mutations outside `flux-system`). |
+| 11 | One namespace `flagpole` | Two overlays in one cluster cannot share a namespace with identical resource names. | `flagpole-dev` and `flagpole-prod`. |
+| 12 | CLAUDE.md < 150 lines (prompt) vs < 200 (docs) | Docs: "Keep CLAUDE.md under 200 lines". | Kept the stricter 150. |
+| 13 | The `Stop` hook's `timeout` is a tool-event limit (≤ 10 s) | `Stop` is not a tool event; defaults are 600 s. Fast tests need more than 10 s once pytest starts. | `timeout: 120`, target `< 60 s`. |
+| 14 | The gh token from `gh auth` works for `flux bootstrap github` | It is an OAuth token (`gho_`) with `repo` scope; Flux accepts any token with repo access via `GITHUB_TOKEN`. To be verified in Phase 4. | Will use `GITHUB_TOKEN=$(gh auth token)`; fall back to a fine-grained PAT if rejected. |
