@@ -62,6 +62,15 @@ spec:
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
       capabilities: {drop: ["ALL"]}
+    # Dex expands its configuration into a temporary file at start, so a read-only root filesystem
+    # needs somewhere writable: "cannot create temp file: /tmp/dex.config.yaml-...: read-only file
+    # system", which crash-loops. An emptyDir keeps the image itself read-only, which is the point.
+    volumes:
+      - name: tmp
+        emptyDir: {}
+    volumeMounts:
+      - name: tmp
+        mountPath: /tmp
     config:
       issuer: https://dex.flagpole.localhost/dex
       storage:
