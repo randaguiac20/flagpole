@@ -1,0 +1,12 @@
+{
+  "_comment": "The machine-readable slice of service-token.md. Both suites assert against this file, so a drift in claim names, algorithm or lifetime fails a test instead of only the demo. Changing it is a change to 003 and to 001 FR-019.",
+  "algorithm": "RS256",
+  "required_claims": ["iss", "sub", "aud", "exp", "iat", "env"],
+  "forbidden_claims": ["groups"],
+  "lifetime_seconds": 300,
+  "defaults": {
+    "issuer": "flagpole-consumer",
+    "subject": "flagpole-consumer",
+    "audience": "flagpole-api"
+  }
+}

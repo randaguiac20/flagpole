@@ -1,0 +1,27 @@
+{# The product page. Spec: 003-flagpole-consumer FR-004, FR-005. Autoescaping is on: every value
+   below comes from the request or from the flag service and renders as text (FR-014). #}
+{% extends "base.html" %}
+{% block content %}
+  <h1>Flagpole demo product</h1>
+
+  {% if decision.enabled %}
+    <p class="banner" data-testid="banner">Something new is here — you are in the rollout.</p>
+  {% endif %}
+
+  <p>This page asked the flag service what to show, and did what it was told.</p>
+
+  <table class="decision">
+    <tbody>
+      <tr><th scope="row">Flag</th><td><code data-testid="decision-flag">{{ decision.flag_key }}</code></td></tr>
+      <tr><th scope="row">Environment</th><td><code data-testid="decision-env">{{ decision.env }}</code></td></tr>
+      <tr><th scope="row">User</th><td><code data-testid="decision-user">{{ decision.user }}</code></td></tr>
+      <tr><th scope="row">Enabled</th><td><code data-testid="decision-enabled">{{ decision.enabled | lower }}</code></td></tr>
+      <tr><th scope="row">Reason</th><td><code data-testid="decision-reason">{{ decision.reason }}</code></td></tr>
+    </tbody>
+  </table>
+
+  {% if not decision.from_service %}
+    <p class="note">The flag service could not be reached, so this page fell back to showing nothing
+      new. That is deliberate: a flag service that is down must not take the product down with it.</p>
+  {% endif %}
+{% endblock %}
