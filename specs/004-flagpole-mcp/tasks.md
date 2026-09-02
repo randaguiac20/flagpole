@@ -74,7 +74,7 @@ cause.
 - [X] T029 Start the server as a real process (`uv run python -m flagpole_mcp </dev/null`) and confirm it exits quietly (research D8)
 - [X] T030 Write `docs/decisions/mcp-flagpole.md` — the decision test, including the honest note that a shell command would serve a human, and why the server exists anyway
 - [X] T031 Update `docs/claude-code/mcp.md` and `docs/walkthrough.md` with real output for a tool, the resource and the prompt (SC-004)
-- [ ] T031a Have the `ui-tester` agent arrange a Given state through this server and drive the browser, with no operator sign-in anywhere in the run (SC-002)
+- [ ] T031a Have the `ui-tester` agent arrange a Given state through this server and drive the browser, with no operator sign-in anywhere in the run (SC-002). **Open**: the arranging half is verified — the flag was set to 100 in dev through the server alone and the browser then showed `enabled=true reason=rollout_hit` on the consumer, with no sign-in anywhere — but the agent has not been asked to do it, because agents run only when the user asks for one.
 - [X] T032 Add any new gotcha discovered while implementing to `docs/gotchas.md`
 
 ## Dependencies

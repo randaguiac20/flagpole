@@ -1,6 +1,0 @@
-- generic [ref=f5e3]:
-  - banner [ref=f5e4]:
-    - heading "Flagpole" [level=1] [ref=f5e5]
-    - button "Sign in" [ref=f5e6] [cursor=pointer]
-  - main [ref=f5e7]:
-    - paragraph [ref=f5e8]: Sign in to see and change feature flags.
