@@ -55,8 +55,8 @@ a merged proposal reaches the cluster with no manual step.
 - [X] T022 [US2] Prove FR-004: push a documentation-only commit and show `gh run list` — a `ci` run and no `release` run. Commit `8b68ff9` touches only `docs/` and `specs/`: exactly one run fired, `ci` (success), and no `release`. The branch attempt earlier could not prove this, because `release.yml` triggers only on `push` to `main`.
 - [X] T023 [US2] Merge to `main`, watch `release.yml`, and show both tags on `flagpole-api` in the registry plus the `org.opencontainers.image.revision` label matching the commit (SC-004) — merged as `98972cb`; `preflight` then three `publish` jobs all green; all three services carry `0.1.0` and `sha-98972cb` pointing at one digest; `org.opencontainers.image.revision = 98972cbf…` equals `main`.
 - [X] T024 [US2] Write `docs/renovate.md`: what each manager covers, why `pre-commit` and `kubernetes` must be enabled explicitly, how the grouping is chosen, and what stays pinned by hand and why
-- [ ] T025 [US2] **User action**: install the Mend Renovate app on `randaguiac20/flagpole` (an account action Claude cannot take). Then show the Dependency Dashboard issue and the first proposals
-- [ ] T026 [US2] Take one proposal through to the cluster: review, merge, `flux reconcile kustomization flagpole-dev --with-source`, `scripts/verify-cluster.sh` — 43 passed, 0 failed (SC-005)
+- [X] T025 [US2] **User action**: install the Mend Renovate app on `randaguiac20/flagpole` — done 2026-09-03 (Renovate Only, Scan and Alert). Dependency Dashboard is issue #3; all nine managers detected dependencies and the grouping came out as configured.
+- [X] T026 [US2] Take one proposal through to the cluster — PR #4 pinned the `deploy/` images to the digests `release.yml` published this morning. Merged as `997cc5c`; Flux applied it to both namespaces, both rollouts completed, `scripts/verify-cluster.sh` 43 passed, 0 failed (SC-005).
 
 ## Phase 5: User Story 3 — findings are triaged, not accumulated (P2)
 

@@ -688,3 +688,52 @@ The first template hook did **not** parse when it was written — `case "$rel" i
 is a redirection, not a pattern (gotcha #47). A template nobody runs is a template that ships broken,
 which is the same lesson as everything else in this repository: a check that has never failed has not
 been tested.
+
+## The chain, closed (2026-09-03)
+
+The Renovate app was installed (Renovate Only; **Scan and Alert** — "Scan Only" sets Renovate to
+*silent*, which would create no proposals at all). It immediately exposed a configuration mistake:
+`renovate.json` carried `"schedule": ["before 6am on monday"]`, so on a Thursday there was nothing to
+see for four days. The window was removed — `prConcurrentLimit` is what keeps the review list short;
+a schedule only decides when you find out.
+
+The dashboard (issue #3) found dependencies through all nine managers, grouped as configured:
+
+```
+chore(deps): Pin dependencies (astral-sh/ruff-pre-commit, astral-sh/uv, fluxcd/flux2, …)
+chore(deps): Pin dependencies (ghcr.io/randaguiac20/flagpole-{api,consumer,web})
+chore(deps): Update language packages (@types/react-dom, python)
+chore(deps): Update container images (ghcr.io/astral-sh/uv, nginx-unprivileged, python)
+chore(deps): Update tooling (astral-sh/uv, node, pipx:pre-commit, uv)
+chore(deps): Update python Docker tag to v3.14        <- a major, alone
+chore(deps): Update dependency typescript to v7       <- a major, alone
+```
+
+### SC-005, end to end
+
+PR #4 pinned the `deploy/` images to the digests `release.yml` had published that morning — a
+proposal that exists only *because* something was published. Merged, and then:
+
+```
+✔ applied revision main@sha1:997cc5c…
+flagpole-dev   ghcr.io/randaguiac20/flagpole-api:0.1.0@sha256:94df9c73b0bd617f7d0…
+flagpole-prod  ghcr.io/randaguiac20/flagpole-api:0.1.0@sha256:94df9c73b0bd617f7d0…
+deployment "flagpole-api" successfully rolled out   (both namespaces)
+scripts/verify-cluster.sh → 43 passed, 0 failed
+```
+
+publish → Renovate notices → proposes the bump in `deploy/` → merge → Flux reconciles. No manual step.
+
+### A major that failed, which is the point of majors arriving alone
+
+PR #2 (TypeScript 7) went red, and honestly:
+
+```
+npm warn peer typescript@"^5.x" from openapi-typescript@7.13.0
+npm error Invalid: lock file's typescript@5.9.3 does not satisfy typescript@7.0.2
+```
+
+`openapi-typescript` — which generates the frontend's types from the 001 contract — still requires
+TypeScript 5. Renovate could not update the lockfile either, which is the separate
+`renovate/artifacts` failure. Closed with that reason; Renovate will raise it again when the peer
+dependency catches up. Because majors are ungrouped, one blocked update held up none of the others.
