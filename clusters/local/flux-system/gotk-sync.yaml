@@ -8,7 +8,7 @@ metadata:
 spec:
   interval: 1m0s
   ref:
-    branch: 005-platform-delivery
+    branch: main
   secretRef:
     name: flux-system
   url: https://github.com/randaguiac20/flagpole.git
