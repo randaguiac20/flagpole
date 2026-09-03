@@ -1,0 +1,112 @@
+{
+  "$comment": "What the workflows and configuration must be. Asserted by scripts/check-ci-contract.sh. Spec: 006-ci-and-security.",
+  "version_file": {
+    "path": "VERSION",
+    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+    "requirement": "FR-005a"
+  },
+  "workflows": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "triggers": ["pull_request", "push"],
+      "push_branches": ["main"],
+      "permissions": { "contents": "read" },
+      "concurrency": true,
+      "jobs": [
+        "lint",
+        "test-backend",
+        "test-consumer",
+        "test-mcp",
+        "test-frontend",
+        "test-hooks",
+        "scan"
+      ],
+      "forbidden_permissions": ["packages", "id-token", "contents: write"],
+      "requirement": "FR-001, FR-002, FR-007"
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "triggers": ["push"],
+      "push_branches": ["main"],
+      "paths_ignore": ["docs/**", "specs/**", "**/*.md"],
+      "permissions": { "contents": "read" },
+      "job_permissions": { "publish": { "contents": "read", "packages": "write" } },
+      "concurrency": true,
+      "jobs": ["publish"],
+      "requirement": "FR-004, FR-005, FR-007"
+    }
+  ],
+  "forbidden_everywhere": {
+    "$comment": "Substrings that must not appear in any workflow file.",
+    "patterns": [
+      "pull_request_target",
+      "::set-output",
+      "actions/checkout@v",
+      "kubectl",
+      "kubeconfig",
+      "KUBE_CONFIG",
+      "flux reconcile",
+      "k3d"
+    ],
+    "requirement": "FR-006, FR-007, FR-014"
+  },
+  "action_pins": {
+    "$comment": "Every uses: must name a 40-character SHA. Tags recorded for readability only.",
+    "rule": "^[^@]+@[0-9a-f]{40}( +#.*)?$",
+    "expected": {
+      "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "actions/setup-node": "820762786026740c76f36085b0efc47a31fe5020",
+      "astral-sh/setup-uv": "20cfd1bf945f4377ade1205e4dbc17946fc9a30d",
+      "docker/setup-buildx-action": "37fe631027851001ddb9b187196cc803df7f5f0e",
+      "docker/login-action": "dbcb813823bdd20940b903addbd779551569679f",
+      "docker/build-push-action": "53b7df96c91f9c12dcc8a07bcb9ccacbed38856a",
+      "docker/metadata-action": "dc802804100637a589fabce1cb79ff13a1411302"
+    },
+    "requirement": "FR-003"
+  },
+  "images": {
+    "registry": "ghcr.io/randaguiac20",
+    "services": ["flagpole-api", "flagpole-consumer", "flagpole-web"],
+    "tags": ["<VERSION>", "sha-<short commit>"],
+    "requirement": "FR-005"
+  },
+  "scanners": [
+    { "name": "pip-audit",    "covers": "python dependencies",  "fails_at": "HIGH" },
+    { "name": "npm audit",    "covers": "npm dependencies",     "fails_at": "high" },
+    { "name": "osv-scanner",  "covers": "all lockfiles",        "fails_at": "HIGH" },
+    { "name": "trivy",        "covers": "images and manifests", "fails_at": "HIGH" },
+    { "name": "hadolint",     "covers": "Dockerfiles",          "fails_at": "error" },
+    { "name": "gitleaks",     "covers": "secrets in history",   "fails_at": "any" },
+    { "name": "bandit",       "covers": "python source",        "fails_at": "HIGH" },
+    { "name": "semgrep",      "covers": "python and typescript source", "fails_at": "ERROR" }
+  ],
+  "scan_script": {
+    "path": "scripts/scan.sh",
+    "runs_all_before_failing": true,
+    "missing_tool_is_a_failure": true,
+    "requirement": "FR-010, FR-011, FR-013"
+  },
+  "renovate": {
+    "path": "renovate.json",
+    "managers": [
+      "pep621",
+      "npm",
+      "dockerfile",
+      "github-actions",
+      "pre-commit",
+      "helm-values",
+      "flux",
+      "kubernetes"
+    ],
+    "pin_digests": true,
+    "automerge": false,
+    "forbidden_keys": ["fileMatch"],
+    "requirement": "FR-008, FR-009"
+  },
+  "findings_document": {
+    "path": "docs/security-findings.md",
+    "columns": ["Date", "Scanner", "Identifier", "Severity", "Where", "Decision", "Reason"],
+    "decisions": ["fixed", "accepted", "not applicable", "deferred"],
+    "requirement": "FR-012"
+  }
+}

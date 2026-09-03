@@ -109,6 +109,11 @@ decision and a date.
   rejected: it adds a release tool, a changelog and a tagging step, and makes the version a side
   effect of how a message was phrased rather than a decision someone made.
 
+- Q: What does "fast enough" mean for SC-002, so it can be measured rather than argued? → A: 10
+  minutes end to end for a typical change. Set during `/speckit-analyze`, which flagged the original
+  wording as unmeasurable. The figure is a budget, not a measurement: if the checks exceed it, the
+  answer is to split or cache a job, not to raise the number quietly.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -154,8 +159,8 @@ decision and a date.
 
 - **SC-001**: A change that breaks a test cannot reach the default branch without the failure being
   visible on it.
-- **SC-002**: The checks for a typical change finish fast enough that people wait for them rather
-  than merge around them.
+- **SC-002**: The checks for a typical change finish within 10 minutes end to end, so that waiting
+  for them is cheaper than merging around them.
 - **SC-003**: A documentation-only change runs no build.
 - **SC-004**: Every image on the default branch can be traced to the commit it was built from.
 - **SC-005**: At least one dependency update is proposed, reviewed and merged, and the cluster
