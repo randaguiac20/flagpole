@@ -1,0 +1,97 @@
+# Traefik: the ingress this project owns. Spec: 005-platform-delivery FR-003, FR-010 (research E1).
+#
+# k3d ships Traefik of its own; cluster-up disables it. Two controllers claiming the same Ingress
+# resolve by start order, which is not a property anyone should depend on.
+#
+# PROMPT.md asked for ingress-nginx. That project was archived on 2026-03-24 and upstream says not to
+# deploy it, so following the prompt literally would install unmaintained software — gotcha #1.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 1h
+  url: https://traefik.github.io/charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: traefik
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: traefik
+      # Pinned. Renovate proposes the bump in feature 006; nothing upgrades itself.
+      version: "41.4.0"
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+        namespace: traefik
+  # FR-006 requires a resource changed directly in the cluster to be put back. For a Kustomization
+  # that is the default; for a HelmRelease it is NOT — without this, Flux reconciles the *release*
+  # and leaves whatever the chart created alone, so `kubectl scale` on a chart's Deployment simply
+  # sticks. Found by scaling Traefik by hand and watching nothing happen.
+  driftDetection:
+    mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    deployment:
+      replicas: 1
+    service:
+      type: LoadBalancer
+    ports:
+      web:
+        port: 8000
+        exposedPort: 80
+        # Everything served over TLS (FR-010): plain HTTP answers with a redirect, not with content.
+        # Chart 41.x nests this under `http`; it sat directly under the port in earlier versions.
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+      websecure:
+        port: 8443
+        exposedPort: 443
+        http:
+          tls:
+            enabled: true
+    ingressClass:
+      enabled: true
+      isDefaultClass: true
+    # Top-level in chart 41.x, not nested under `logs`.
+    log:
+      level: INFO
+    accessLog:
+      enabled: true
+    providers:
+      kubernetesIngress:
+        publishedService:
+          enabled: true
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+      readOnlyRootFilesystem: true

@@ -1,0 +1,15 @@
+# The browser calls the flag service at /api/... on the same origin, so there is no CORS to configure
+# and no second host to trust. The flag service's own routes have no /api prefix, so it is stripped
+# here — exactly as the development proxy strips it (frontend/vite.config.ts). One of these two
+# forgetting is how the app works in development and 404s in the cluster.
+#
+# This is a Traefik custom resource, so the application Kustomizations depend on `platform`, which
+# installs Traefik. Same rule as the certificate authority (research E9a).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /api

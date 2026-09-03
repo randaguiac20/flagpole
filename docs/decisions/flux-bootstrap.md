@@ -1,0 +1,7 @@
+# Decision: Flux, bootstrapped from this repository
+
+- **Problem / trigger**: the cluster must be changed only through git, and the reconciler itself must be part of that rather than something a command once installed.
+- **Alternative rejected**: `flux install` plus a hand-applied GitRepository (nothing written to GitHub, but Flux is no longer managed from git — the user was asked and chose against it); Argo CD (a second UI and account model for a demo whose lesson is the reconciliation, not the dashboard); no GitOps at all (`kubectl apply`, which the hook already refuses).
+- **Limits**: `--token-auth --personal`, path `clusters/local`, one GitRepository. The bootstrap writes to the remote and creates a Secret in the cluster, so `scripts/cluster-up.sh` prints exactly what it will change **outside** this repository and stops for an answer. It is the only command in the feature that does.
+- **Not done**: no image automation (Renovate covers it in feature 006), no notification providers, no multi-tenancy. Flux followed the feature branch during development and moves to `main` when the feature merges — one commit, which is the point.
+- **Verification** (2026-09-02): `flux get kustomizations` shows `flux-system`, `platform`, `platform-issuer`, `flagpole-dev`, `flagpole-prod` all Ready at the same revision. A ConfigMap added in a commit appeared in the cluster; removed in the next commit, it was pruned.

@@ -1,0 +1,128 @@
+# Default deny, then the few allowances each workload needs.
+# Spec: 005-platform-delivery FR-017 (research E9).
+#
+# Deny-first is the only ordering that fails safe: an allow-list built the other way round silently
+# permits whatever nobody thought of. This is also what makes "the environments are isolated" a
+# control rather than a claim — see SC-006.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+# The ingress controller reaches the three web-facing workloads. Nothing else may.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-traefik
+spec:
+  podSelector:
+    matchExpressions:
+      - {key: app, operator: In, values: [flagpole-api, flagpole-consumer, flagpole-web]}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: traefik}
+---
+# The consumer calls the flag service. Egress alone is not enough: the flag service's own ingress
+# rule admits only Traefik, so without this the call is refused at the far end and the consumer
+# renders its fail-safe page — correct behaviour for the wrong reason, and easy to mistake for a
+# working system because the page still returns 200.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-from-consumer
+spec:
+  podSelector:
+    matchLabels: {app: flagpole-api}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: flagpole-consumer}
+      ports:
+        - {protocol: TCP, port: 8000}
+---
+# The database accepts connections from this namespace's own workloads only. A pod in the other
+# environment matches no rule here, so its connection is refused (SC-006).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres-from-this-namespace
+spec:
+  podSelector:
+    matchLabels: {app: postgres}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - {key: app, operator: In, values: [flagpole-api]}
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-postgres
+spec:
+  podSelector:
+    matchLabels: {app: flagpole-api}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {app: postgres}
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+# The consumer calls the flag service, and nothing else.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-consumer-to-api
+spec:
+  podSelector:
+    matchLabels: {app: flagpole-consumer}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels: {app: flagpole-api}
+      ports:
+        - {protocol: TCP, port: 8000}
+---
+# The flag service fetches the identity provider's signing keys.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-dex
+spec:
+  podSelector:
+    matchLabels: {app: flagpole-api}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: dex}
+      ports:
+        - {protocol: TCP, port: 5556}

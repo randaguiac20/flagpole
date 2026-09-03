@@ -1,0 +1,21 @@
+# Everything both environments share. Spec: 005-platform-delivery FR-008.
+#
+# The overlays stay thin on purpose: the moment an overlay holds logic, the two environments have
+# quietly become two systems, and a change made in one place stops arriving in the other.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - postgres/statefulset.yaml
+  - postgres/service.yaml
+  - api/deployment.yaml
+  - api/service.yaml
+  - api/middleware.yaml
+  - consumer/deployment.yaml
+  - consumer/service.yaml
+  - web/deployment.yaml
+  - web/service.yaml
+  - networkpolicy.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: flagpole
+    includeSelectors: false

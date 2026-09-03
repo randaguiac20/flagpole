@@ -1,0 +1,87 @@
+# flagpole-api. Spec: 005-platform-delivery FR-001, FR-012, FR-016, FR-020.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagpole-api
+spec:
+  replicas: 1                     # overlays set the real number
+  selector:
+    matchLabels: {app: flagpole-api}
+  template:
+    metadata:
+      labels: {app: flagpole-api}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001            # so the mounted key Secret is readable by this uid (gotcha #29)
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        # The schema is current before the container that serves ever starts (FR-012). The lock
+        # inside makes this safe with more than one replica — see backend/app/migrate.py.
+        - name: migrate
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          command: ["python", "-m", "app.migrate"]
+          envFrom:
+            - configMapRef: {name: flagpole-api}
+          env:
+            - name: FLAGPOLE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: database-url}}
+          securityContext: &hardened
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+        # The demo flag, so the cluster starts in the same state as the development stack. Idempotent
+        # (it returns early when the flag exists), and ordered after the migration because it needs
+        # the schema. Without it the cluster comes up correct and empty, which looks broken.
+        - name: seed
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          command: ["python", "-m", "app.seed"]
+          envFrom:
+            - configMapRef: {name: flagpole-api}
+          env:
+            - name: FLAGPOLE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: database-url}}
+          securityContext: *hardened
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+      containers:
+        - name: flagpole-api
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          ports:
+            - {name: http, containerPort: 8000}
+          envFrom:
+            - configMapRef: {name: flagpole-api}
+          env:
+            - name: FLAGPOLE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: flagpole-postgres, key: database-url}}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          # Readiness reflects whether it can actually serve: /readyz is the data store check
+          # (001 FR-013), so a database outage takes this pod out of the Service rather than
+          # letting it answer with errors.
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          securityContext: *hardened
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: service-keys, mountPath: /keys, readOnly: true}
+      volumes:
+        - name: service-keys
+          secret:
+            secretName: flagpole-service-keys
+            defaultMode: 0440     # readable by uid 10001 through fsGroup, by nobody else
+            items:
+              - {key: consumer.pub, path: consumer.pub}
+              - {key: mcp.pub, path: mcp.pub}

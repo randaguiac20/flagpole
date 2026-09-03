@@ -1,0 +1,7 @@
+# Decision: one PostgreSQL per environment, as a plain StatefulSet
+
+- **Problem / trigger**: the flag service needs a real database in the cluster, and the two environments must be isolated in a way something can enforce.
+- **Alternative rejected**: one shared instance with two databases (both namespaces must be allowed to reach it, so the NetworkPolicy demonstrates nothing and the separation rests on credentials alone — the user was asked and chose against it); a database operator (a controller, its custom resources and an upgrade story, to run one database holding a handful of rows); keeping SQLite (no shared state between replicas, and it would dodge the migration and secret parts of the feature entirely).
+- **Limits**: `postgres:18-alpine` pinned by digest, one replica, one 1Gi volume, credentials from a SOPS-encrypted Secret, `pg_isready` as the readiness probe. Not read-only root — PostgreSQL writes its socket and lock files outside the data volume — and that exception is named in the manifest rather than left to a default.
+- **Not done**: no backups (the cluster is disposable and says so), no replication, no connection pooler, no tuning. A real deployment would want all four, and would not run its database from a thirty-line StatefulSet.
+- **Verification** (2026-09-02): `scripts/verify-cluster.sh` shows a workload in each environment unable to open a connection to the other's database, from a pod that is already running rather than one the script created.

@@ -1,0 +1,130 @@
+# Dex: sign-in for both environments. Spec: 005-platform-delivery FR-011 (research E4).
+#
+# The same static users the local development stack uses (dex/dev-config.yaml.tmpl), with the same
+# password hashes and the same groups — so a role bug cannot be explained away as "the cluster has
+# different users". A real deployment would connect Dex to a directory; nothing else here changes,
+# which is why Dex is worth using for a demo at all.
+#
+# There is no client secret. The web app is a PUBLIC client using PKCE (002 FR-001), so nothing
+# secret exists to encrypt, and inventing a secret here would teach a worse pattern than it hides.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dex
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  interval: 1h
+  url: https://charts.dexidp.io
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dex
+  namespace: dex
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: dex
+      version: "0.24.1"
+      sourceRef:
+        kind: HelmRepository
+        name: dex
+        namespace: dex
+  # FR-006 requires a resource changed directly in the cluster to be put back. For a Kustomization
+  # that is the default; for a HelmRelease it is NOT — without this, Flux reconciles the *release*
+  # and leaves whatever the chart created alone, so `kubectl scale` on a chart's Deployment simply
+  # sticks. Found by scaling Traefik by hand and watching nothing happen.
+  driftDetection:
+    mode: enabled
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    replicaCount: 1
+    # The chart sets no security context, and the namespace enforces the restricted standard, so
+    # the pod was rejected outright: "violates PodSecurity restricted:latest". That is the standard
+    # working — a third party's defaults do not get to lower this cluster's floor (FR-016). The
+    # values below are the same floor every workload in deploy/base/ already meets.
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1001
+      runAsGroup: 1001
+      seccompProfile: {type: RuntimeDefault}
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities: {drop: ["ALL"]}
+    # Dex expands its configuration into a temporary file at start, so a read-only root filesystem
+    # needs somewhere writable: "cannot create temp file: /tmp/dex.config.yaml-...: read-only file
+    # system", which crash-loops. An emptyDir keeps the image itself read-only, which is the point.
+    volumes:
+      - name: tmp
+        emptyDir: {}
+    volumeMounts:
+      - name: tmp
+        mountPath: /tmp
+    config:
+      issuer: https://dex.flagpole.localhost/dex
+      storage:
+        type: memory      # disposable: restarting Dex signs everyone out, which is fine here
+      web:
+        http: 0.0.0.0:5556
+        # The browser exchanges the code from whichever web host it came from.
+        allowedOrigins:
+          - https://dev.flagpole.localhost
+          - https://prod.flagpole.localhost
+      oauth2:
+        responseTypes: ["code"]
+        skipApprovalScreen: true
+      staticClients:
+        - id: flagpole-web
+          name: Flagpole Web
+          public: true    # PKCE, no client secret in the browser (002 FR-001)
+          redirectURIs:
+            - https://dev.flagpole.localhost/callback
+            - https://prod.flagpole.localhost/callback
+      enablePasswordDB: true
+      # Demo credentials for a local cluster. The password is "flagpole" and is printed in the
+      # walkthrough: these grant nothing outside this machine, which is why they are not encrypted.
+      staticPasswords:
+        - email: alice@flagpole.local
+          username: alice
+          userID: 11111111-1111-1111-1111-111111111111
+          hash: "$2b$10$rhJM5jU/ZMJpg9Q6s.DtKOJbW9CWYQmvbyjs74ogk4jXQIrS0Td5i"
+          groups: ["operators"]
+        - email: bob@flagpole.local
+          username: bob
+          userID: 22222222-2222-2222-2222-222222222222
+          hash: "$2b$10$6zH7Nc4Iy5JMq0ZH9jP07.vM3n2J1FnkNA9.fBvMoRVTmdqmQdoPC"
+          groups: ["viewers"]
+    ingress:
+      enabled: true
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: flagpole-ca
+      hosts:
+        - host: dex.flagpole.localhost
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: dex-tls
+          hosts:
+            - dex.flagpole.localhost
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {memory: 128Mi}

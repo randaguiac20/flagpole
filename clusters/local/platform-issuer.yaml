@@ -1,0 +1,22 @@
+# The certificate authority. Spec: 005-platform-delivery FR-010.
+#
+# Separate from `platform` because it uses cert-manager's custom resources, and a Kustomization is
+# dry-run as a whole: an unknown kind in the same set as the controller that defines it can never
+# converge. dependsOn makes the ordering explicit instead of hoping a retry sorts it out.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform-issuer
+  namespace: flux-system
+spec:
+  interval: 30m
+  retryInterval: 1m
+  timeout: 5m
+  path: ./platform/issuer
+  prune: true
+  wait: true
+  dependsOn:
+    - name: platform
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

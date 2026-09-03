@@ -1,0 +1,52 @@
+# Ingress for the prod environment. Spec: 005-platform-delivery FR-010.
+# Hosts differ per environment, so these live in the overlay rather than the base.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flagpole-web
+  annotations:
+    cert-manager.io/cluster-issuer: flagpole-ca
+    # Strips /api before the flag service sees it. The annotation applies to every route this
+    # Ingress creates, including the web app's — which is harmless, because stripPrefix passes a
+    # request whose path does not start with the prefix through unchanged. One Ingress rather than
+    # two also keeps one Certificate for the host; two would race for the same TLS secret.
+    # The reference carries the namespace, which is why the annotation is here and the Middleware
+    # itself is in the shared base.
+    traefik.ingress.kubernetes.io/router.middlewares: flagpole-prod-strip-api-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [prod.flagpole.localhost]
+      secretName: flagpole-web-tls
+  rules:
+    - host: prod.flagpole.localhost
+      http:
+        paths:
+          # The browser talks to the flag service through the same origin, so there is no CORS
+          # to configure and no second host to trust.
+          - path: /api
+            pathType: Prefix
+            backend: {service: {name: flagpole-api, port: {name: http}}}
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: flagpole-web, port: {number: 80}}}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flagpole-consumer
+  annotations:
+    cert-manager.io/cluster-issuer: flagpole-ca
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts: [consumer.prod.flagpole.localhost]
+      secretName: flagpole-consumer-tls
+  rules:
+    - host: consumer.prod.flagpole.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: flagpole-consumer, port: {name: http}}}

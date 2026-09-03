@@ -1,0 +1,39 @@
+# Reconciles platform/ into the cluster. Spec: 005-platform-delivery FR-005, FR-007.
+#
+# The controllers only. The certificate authority is a second unit that depends on this one.
+#
+# The first attempt put both here, reasoning that Flux would retry until cert-manager's custom
+# resources existed. The cluster disproved it: kustomize-controller dry-runs the entire set before
+# applying any of it, so the unknown Certificate kind aborted the apply that would have installed
+# cert-manager — a deadlock, not a delay. A dependsOn edge is the cost of using a controller's own
+# custom resources in the same repository that installs the controller.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: platform
+  namespace: flux-system
+spec:
+  interval: 30m
+  retryInterval: 1m
+  # 5m, not 10m: a failed chart install is reported by the HelmRelease itself within seconds, and a
+  # long health-check window only means every mistake costs ten minutes before the next attempt.
+  timeout: 5m
+  path: ./platform
+  prune: true          # a component removed from git is removed from the cluster (FR-006)
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: traefik
+      namespace: traefik
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: cert-manager
+      namespace: cert-manager
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: dex
+      namespace: dex

@@ -61,3 +61,20 @@ Added by features 003–005.
 | pytest, pytest-asyncio, ruff | dev | no `respx`: httpx ships the transport stub this needs |
 
 No database, no cache, no client-side framework. The consumer holds nothing between requests.
+
+## Cluster (feature 005-platform-delivery)
+
+Charts and images pinned; Renovate proposes bumps in feature 006. Digests resolved 2026-09-02.
+
+| Component | Version | Why | Source |
+|---|---|---|---|
+| k3d | 5.9.0 | one-command local cluster with a real load balancer on 80/443 | https://k3d.io |
+| Flux | 2.9.5 | reconciles this repository; bootstrapped so its own upgrades are commits | https://fluxcd.io |
+| traefik/traefik (chart) | 41.4.0 (app v3.7.12) | ingress; ingress-nginx is archived (gotcha #1) | https://traefik.github.io/charts |
+| jetstack/cert-manager (chart) | v1.21.1 | the local certificate authority and the issued certificates | https://charts.jetstack.io |
+| dex/dex (chart) | 0.24.1 (app 2.44.0) | OIDC with the same static users the dev stack uses | https://charts.dexidp.io |
+| postgres | 18-alpine `sha256:d3e1620b…` | one per environment, plain StatefulSet | https://hub.docker.com/_/postgres |
+| python | 3.12-slim `sha256:78387bc3…` | base for flagpole-api and flagpole-consumer | https://hub.docker.com/_/python |
+| node | 24-alpine `sha256:e67514e5…` | build stage for flagpole-web | https://hub.docker.com/_/node |
+| nginxinc/nginx-unprivileged | 1.29-alpine `sha256:0c79d56a…` | serves the web app; the ordinary nginx image binds :80 as root, which `restricted` rejects | https://hub.docker.com/r/nginxinc/nginx-unprivileged |
+| ghcr.io/astral-sh/uv | 0.11.31 `sha256:ecd4de2f…` | uv copied from its published image rather than installed by a script | https://github.com/astral-sh/uv |
