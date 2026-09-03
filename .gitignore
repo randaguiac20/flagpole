@@ -55,3 +55,6 @@ mcp/flagpole-mcp/.keys/
 
 # Playwright MCP writes snapshots and console logs here despite --output-dir (gotcha #26).
 .playwright-mcp/
+
+# raw scanner output (scripts/scan.sh)
+.scan/

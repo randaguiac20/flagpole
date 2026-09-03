@@ -14,7 +14,8 @@ Exact commands and prompts, in order. Phases 3–6 are appended as they land. Pr
 ## Phase 2 — Claude Code scaffolding + SDD bootstrap (chores, no spec)
 
 ```
-mise use -g flux2@2.9.5 trivy@latest hadolint@latest osv-scanner@latest yq@latest
+mise use -g flux2@2.9.5 trivy@latest hadolint@latest osv-scanner@latest yq@latest actionlint@latest
+# renovate-config-validator is not installed: `npx --yes --package renovate -- renovate-config-validator`
 uv tool install pip-audit bandit semgrep ruff
 uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@v1.0.3
 gh repo create randaguiac20/flagpole --public --source=. --remote=origin

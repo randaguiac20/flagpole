@@ -12,7 +12,9 @@ cd "$ROOT"
 # shellcheck disable=SC1091
 [[ -f .env ]] && source .env
 REGISTRY="${FLAGPOLE_IMAGE_REGISTRY:-ghcr.io/randaguiac20}"
-TAG="${FLAGPOLE_IMAGE_TAG:-0.1.0}"
+# The version comes from ./VERSION — one place, changed by a person (006 FR-005a). An override
+# is for a throwaway local build and never for a published image.
+TAG="${FLAGPOLE_IMAGE_TAG:-$(cat "$ROOT/VERSION")}"
 
 services=(api:backend consumer:consumer web:frontend)
 

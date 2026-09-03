@@ -431,3 +431,120 @@ sudo cp /tmp/flagpole-ca.crt /usr/local/share/ca-certificates/flagpole-ca.crt &&
 
 `.mcp.json` now passes `--ignore-https-errors` to the Playwright server so the `ui-tester` agent can
 reach the cluster hosts; that takes effect in a new session.
+
+
+## Phase 5 — feature 006-ci-and-security via the SDD loop (2026-09-02)
+
+Two workflows, one Renovate configuration, one scanner script and one findings document. The lesson
+of this feature is not that scanners exist; it is what happens to what they say.
+
+### The check was written before the thing it checks
+
+`scripts/check-ci-contract.sh` reads `specs/006-ci-and-security/contracts/ci-contract.json` and was
+run first against a repository with no workflows at all — **2 passed, 14 failed**. After the
+workflows, the configuration and the findings document:
+
+```
+105 passed, 0 failed
+```
+
+Neither refusal is taken on trust. Changing `pull_request` to `pull_request_target` in `ci.yml`:
+
+```
+  FAIL triggers on pull_request
+  FAIL no 'pull_request_target' in any workflow
+103 passed, 2 failed
+```
+
+Adding a step that writes to the cluster (FR-006):
+
+```
+  FAIL no 'kubectl' in any workflow
+104 passed, 1 failed
+```
+
+### What the first real scan found — in itself
+
+`make scan` had never run before this feature; `scripts/scan.sh` was a four-line stub. Its first run
+reported 12 findings, and four of them were bugs in the scanning rather than in the code:
+
+| Reported | What it actually was |
+|---|---|
+| 6 x bandit HIGH in `pygments`, `cryptography`, `httpx`, the MCP SDK | `bandit -r mcp/flagpole-mcp` descended into the service's `.venv` and reported its dependencies as this repository's source |
+| `private-key` in `consumer/.keys/`, `mcp/flagpole-mcp/.keys/` | gitleaks and trivy were walking gitignored local dev keys — reporting the developer's machine rather than the repository. `git ls-files` returns nothing for either path |
+| trivy: **clean** on `deploy`, `platform`, `clusters` | `trivy config` takes one directory and exits FATAL on three. The report was empty, `jq` extracted nothing, and the summary said clean. A check that could never fail — the exact FR-011 failure this feature exists to prevent, found by the feature's own first run |
+| KSV-0014 on `postgres` | Real. `readOnlyRootFilesystem: false`, behind a comment claiming PostgreSQL needs a writable root. It needs two directories, not a filesystem |
+
+The postgres finding was fixed rather than accepted, and verified before the manifest changed:
+
+```
+docker run --read-only --tmpfs /var/run/postgresql --tmpfs /tmp -v vol:/var/lib/postgresql/data ...
+READY after 2s
+127.0.0.1:5432 - accepting connections
+CREATE TABLE / INSERT 0 1 / count = 1
+touch: /usr/local/probe: Read-only file system
+```
+
+What remains is two `accepted` rows in `docs/security-findings.md` for Flux's own generated RBAC —
+`kustomize-controller` cannot manage Secrets without permission to manage Secrets.
+
+### Both guarantees, proved by breaking them
+
+A planted credential must fail the run. The first attempt used the AWS documentation example and
+produced nothing — gitleaks allowlists it (gotcha #38). With a realistically shaped token:
+
+```
+== gitleaks — secrets in the tree and its history (any finding)
+   1 finding(s) at or above the threshold
+     github-pat backend/app/_probe.py:2
+exit=1
+```
+
+A scanner that is not installed must fail, not be skipped (FR-011). With `gitleaks` removed from
+`PATH`:
+
+```
+== gitleaks — secrets in the tree and its history (any finding)
+   NOT INSTALLED — mise use -g gitleaks
+...
+gitleaks       missing    0
+exit=1
+```
+
+### The state it settles at
+
+```
+== triage against docs/security-findings.md
+   recorded    KSV-0041
+   recorded    KSV-0046
+   every finding above its threshold has a row
+
+SCANNER        STATE      FINDINGS
+pip-audit      clean      0
+npm-audit      clean      0
+osv-scanner    clean      0
+trivy          flagged    2
+hadolint       clean      0
+gitleaks       clean      0
+bandit         clean      0
+semgrep        clean      0
+
+all scanners ran; nothing unaccounted for
+raw output: .scan
+```
+
+### A note the discovery phase got wrong
+
+`renovate-config-validator` does **not** reject the deprecated `fileMatch` key. It migrates it,
+warns, and exits 0:
+
+```
+ WARN: Config migration necessary
+ WARN: Config migration diff:
+ INFO: Config validated successfully against 1 file(s)
+$ echo $?
+0
+```
+
+So the lint job reads the validator's output rather than its exit status, and the contract check
+asserts the key is absent. Recorded as gotcha #35 and corrected in `research.md`.
