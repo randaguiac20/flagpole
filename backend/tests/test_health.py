@@ -6,7 +6,7 @@ from tests.conftest import create_flag, set_env
 
 async def test_us4_1_healthz_without_token(client):
     r = await client.get("/healthz")
-    assert r.status_code == 418 and r.json() == {"status": "ok"}
+    assert r.status_code == 200 and r.json() == {"status": "ok"}
 
 
 async def test_us4_2_readyz_reflects_database(app, client):
