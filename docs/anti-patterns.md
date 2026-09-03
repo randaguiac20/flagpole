@@ -51,3 +51,9 @@ For every mechanism: the misuse, why it hurts, and what Flagpole does instead. P
 | Keeping the components in `.claude/` **and** in the plugin | Two sources of truth. The first edit to one makes the other a lie, and nothing would catch it. `scripts/check-blueprint.sh` asserts the `.claude/` copies are gone. | Never. |
 | Templates generated from the live files | A generator would keep them in sync and lose the only thing that makes them worth having — the comment saying *when not to* reach for the mechanism. | Templates drifting far enough that someone copies a broken one. |
 | Re-running the whole rebuild end to end | It needs an empty machine, a new GitHub repository, `flux bootstrap` and a cluster. Claiming to have re-run it would be the kind of unverified statement this repository exists to avoid. | Someone actually doing it — the blueprint names the three steps that were not re-run. |
+
+## Known gap — the end-to-end suite cannot be aimed at the cluster
+
+| Not built | Why | The signal that would change it |
+|---|---|---|
+| A base-URL switch on the Playwright suite (`make e2e TARGET=cluster`) | Recorded here rather than quietly dropped, because for a while the repository *claimed* to have it: the `/e2e` skill, `specs/005-platform-delivery/quickstart.md` and task T043 all named a target that never existed. `frontend/playwright.config.ts` hardcodes `baseURL: http://localhost:${WEB_PORT}` and starts its own Dex, API and web server; retargeting it means making the base URL configurable *and* skipping `webServer` when it points elsewhere — modest work, but work. | Already given, and it is the strongest kind: a bug the suite could not see. The cluster ran Dex 2.44.0 while `docker-compose.dev.yaml` ran 2.45.1, so `groups` never reached the token and every cluster user signed in as a viewer, while all nine tests stayed green (gotcha #50). Cluster acceptance is a browser run against the ingress hosts (quickstart §7) until this is closed. |

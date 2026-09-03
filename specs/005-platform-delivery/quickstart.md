@@ -87,14 +87,30 @@ Asserts the running cluster against `contracts/cluster-contract.json` and runs e
 
 **Proves**: SC-005, SC-006 and SC-007.
 
-## 7. End to end
+## 7. End to end, in a browser
 
-```bash
-make e2e TARGET=cluster
-```
+The Playwright suite cannot be pointed here: `frontend/playwright.config.ts` hardcodes
+`baseURL: http://localhost:${WEB_PORT}` and starts its own Dex, API and web server, and `make e2e`
+takes no target. Earlier drafts of this file and of task T043 said `make e2e TARGET=cluster`, which
+never existed. Until the config takes a base URL, the cluster's acceptance evidence is gathered in a
+browser against the ingress hosts, which is what the steps below do.
 
-**Proves**: the same acceptance scenarios that pass against the development stack also pass against
-the cluster, which is the only evidence that the two are the same product.
+Trust the CA first (`docs/walkthrough.md` §"trust the cluster's CA" — all three trust stores; the
+NSS step is the one browsers actually read).
+
+1. Open `https://dev.flagpole.localhost`, sign in as `alice@flagpole.local` / `flagpole`.
+   The header must show `operator`, not `viewer` — that claim comes from Dex and is the thing
+   gotcha #49 broke silently.
+2. Clear the `Enabled (dev)` checkbox on `new_banner` and press Save.
+3. `curl -sS https://consumer.dev.flagpole.localhost/` → `enabled=false`, `reason=env_disabled`.
+4. `curl -sS https://consumer.prod.flagpole.localhost/` → unchanged. Each namespace runs its own API
+   and its own database, so a change made through the dev host cannot reach prod.
+5. Re-check the box, Save, and confirm step 3 returns to `enabled=true`, `reason=rollout_hit`.
+6. Open the audit log: both writes appear newest-first, attributed to `alice@flagpole.local`, as
+   `on / 100% → off / 100%` and back.
+
+**Proves**: SC-002 — a signed-in operator changes a flag through the cluster's ingress, the consumer
+follows, the environments stay independent, and the change is attributable.
 
 ## Tearing it down
 

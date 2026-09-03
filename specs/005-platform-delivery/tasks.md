@@ -49,7 +49,7 @@ change a flag.
 - [X] T024 [US1] Write `clusters/local/flagpole-dev.yaml` and `flagpole-prod.yaml` — prune, wait, health checks, `decryption.provider: sops`, `dependsOn: platform`
 - [X] T025 [US1] Implement `scripts/deploy.sh`: import the images into k3d, reconcile, and wait on conditions rather than sleeping
 - [X] T026 [US1] Run `make cluster-up` and `make deploy`; show `flux get kustomizations` and `flux get helmreleases` all Ready (FR-007, SC-001)
-- [ ] T027 [US1] Open both environments in a browser: sign in, change a flag, see the consumer follow, and confirm each environment shows its own state (SC-002). **Partly done**: the flag was changed through the cluster's ingress and both consumers followed, each showing its own state, verified over TLS. The *browser sign-in* half is open — Chromium refuses the cluster's self-signed CA, and `.mcp.json` now passes `--ignore-https-errors`, which takes effect in a new session.
+- [X] T027 [US1] Open both environments in a browser: sign in, change a flag, see the consumer follow, and confirm each environment shows its own state (SC-002). Closed 2026-09-03: signed in through the ingress as `alice@flagpole.local`, cleared `Enabled (dev)` on `new_banner` and saved; `consumer.dev` went `true/rollout_hit → false/env_disabled` and back on re-enable, while `consumer.prod` stayed `false/env_disabled` throughout. Both writes are in the audit log against alice. The sign-in half was blocked by two things, not one: the self-signed CA (`--ignore-https-errors` for the MCP browser, and the NSS store for a human — gotcha #48) and Dex dropping the `groups` claim, which made every user a viewer who could not have changed anything (gotcha #49).
 
 ## Phase 4: User Story 2 — the cluster is changed only through git (P1)
 
@@ -92,7 +92,7 @@ one the application uses.
 ## Phase 7: Polish & cross-cutting
 
 - [X] T042 Run `scripts/verify-cluster.sh` green against the running cluster, and show it failing when a namespace is renamed
-- [ ] T043 Run `make e2e TARGET=cluster` against the cluster hosts. **Open**: blocked by the same certificate-trust question as T027; Playwright needs either the CA in the trust store or the flag that lands next session.
+- [X] T043 Gather the acceptance evidence against the cluster hosts (`specs/005-platform-delivery/quickstart.md` §7). Rewritten 2026-09-03: this task said `make e2e TARGET=cluster`, and **no such target has ever existed** — `frontend/playwright.config.ts` hardcodes `baseURL` to localhost and starts its own stack, so the suite cannot be aimed at the cluster and a green `make e2e` says nothing about it (gotcha #50). Done as a browser run through the ingress instead, per T027. Pointing the suite at a base URL is a real gap; it is recorded in `docs/anti-patterns.md` rather than pretended away here.
 - [X] T044 Run `make test` and `make test-hooks`; `shellcheck` clean on all three new scripts
 - [X] T045 Write `docs/decisions/` entries for the cluster, the reconciler, the ingress choice, the secret handling and the database topology
 - [X] T046 Update `docs/walkthrough.md` with real output for each success criterion
