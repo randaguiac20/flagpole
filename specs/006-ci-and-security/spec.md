@@ -93,8 +93,12 @@ decision and a date.
   itself.
 - **A finding has no fix available upstream**: it is recorded with that fact and the date, not
   silently ignored.
-- **The registry rejects a push**: the change is reported as failed, and no partially published set
-  of images is left behind.
+- **The registry rejects a push**: the change is reported as failed. Every cause that can be
+  detected before building is checked first, for all three services at once, so the common case
+  leaves nothing behind. A registry offers no transaction, so a failure part-way through the third
+  push can still leave two services published at the new version; that is a real limit, stated here
+  rather than claimed away, and the recovery is to fix the cause and re-run — the version is
+  unchanged, so the two already-published tags are the same images.
 - **A fork or an outside change**: checks run, but nothing that could publish or write runs with
   credentials.
 

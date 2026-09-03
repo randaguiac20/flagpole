@@ -8,6 +8,8 @@
 #   mise trust && mise install     # once, after cloning
 [tools]
 actionlint    = "1.7.12"
+node          = "24.18.0"  # the major frontend/Dockerfile builds with, pinned to the patch
+uv            = "0.11.31"  # the version backend/Dockerfile copies in
 gitleaks      = "8.30.1"
 hadolint      = "2.15.1"
 ruff          = "0.16.5"   # the same version .pre-commit-config.yaml pins
@@ -22,3 +24,8 @@ yq            = "4.53.6"
 "pipx:pre-commit" = "4.6.1"
 "pipx:pip-audit"  = "2.10.1"
 "pipx:semgrep"    = "1.176.0"
+
+# Renovate is NOT pinned here. mise refuses to install it: a transitive dependency
+# (@yarnpkg/libzip@3.2.2) has no provenance attestation where 3.2.0 had one, which mise treats as a
+# supply-chain trust downgrade. That refusal is correct and is not worth an exclusion, so the
+# validator is pinned at its call site instead — `npx --package renovate@<version>` in ci.yml.

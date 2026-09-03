@@ -28,6 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with: {version: 2026.8.10}   # mise itself, not just what it installs
       # The same hooks a commit runs locally, over every file rather than the staged ones. Running
       # pre-commit here instead of restating ruff and shellcheck is what stops the two from
       # drifting — a CI lint that is stricter than the hook is a lint nobody can satisfy locally.
@@ -41,9 +42,13 @@ jobs:
         run: scripts/check-ci-contract.sh
       # The validator exits 0 on a deprecated key — it migrates it and warns. Reading the exit
       # status alone would let `fileMatch` through silently, so read what it said.
+      # `--package renovate@44.59.3`, never a bare `--package renovate`: the latter fetches and runs
+      # whatever npm published that morning, in a job whose whole purpose is that the same commit
+      # gives the same answer (FR-003). Pinning it here rather than in .mise.toml is deliberate —
+      # see the note in that file about the provenance downgrade mise refuses to install through.
       - name: renovate.json is valid and needs no migration
         run: |
-          out=$(npx --yes --package renovate -- renovate-config-validator renovate.json 2>&1)
+          out=$(npx --yes --package renovate@44.59.3 -- renovate-config-validator renovate.json 2>&1)
           echo "$out"
           if grep -qi 'migration necessary\|ERROR' <<< "$out"; then
             echo "::error file=renovate.json::the configuration uses a deprecated key"
@@ -55,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true}
+        with: {enable-cache: true, version: '0.11.31'}
       # --frozen: the lockfile is honoured, not refreshed. A resolution that happens here and not on
       # the developer's machine is a different test run wearing the same commit.
       - run: uv sync --frozen
@@ -68,7 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true}
+        with: {enable-cache: true, version: '0.11.31'}
       - run: uv sync --frozen
         working-directory: consumer
       - run: uv run pytest -q
@@ -79,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true}
+        with: {enable-cache: true, version: '0.11.31'}
       - run: uv sync --frozen
         working-directory: mcp/flagpole-mcp
       - run: uv run pytest -q
@@ -91,7 +96,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '24'          # the version frontend/Dockerfile builds with
+          node-version: '24.18.0'     # exactly, not the 24.x that floats under it
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
@@ -118,8 +123,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {fetch-depth: 0}        # gitleaks reads the history, not just the tip
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with: {version: 2026.8.10}   # mise itself, not just what it installs
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true}
+        with: {enable-cache: true, version: '0.11.31'}
       # The same command as `make scan` locally, with the same tool versions from .mise.toml —
       # which is what makes "the same findings for the same commit" true rather than hoped (FR-013).
       - run: make scan
@@ -127,5 +133,10 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scanner-output
-          path: .scan/
+          # The identifiers and the summary, never the raw reports: trivy's secret scanner embeds
+          # the matched line verbatim, and this artifact is downloadable by anyone who can read the
+          # repository (FR-014).
+          path: |
+            .scan/*.ids
+            .scan/summary.txt
           retention-days: 7

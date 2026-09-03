@@ -13,7 +13,11 @@ cd "$ROOT"
 [[ -f .env ]] && source .env
 CLUSTER="${FLAGPOLE_CLUSTER_NAME:-flagpole}"
 REGISTRY="${FLAGPOLE_IMAGE_REGISTRY:-ghcr.io/randaguiac20}"
-TAG="${FLAGPOLE_IMAGE_TAG:-$(cat "$ROOT/VERSION")}"
+# The tag the MANIFESTS name, not the one VERSION names. Between a version bump and the merge of
+# Renovate's proposal the two differ, and importing VERSION's tag would put images in the cluster
+# that no Deployment references — a deploy that succeeds and changes nothing (006 FR-008).
+TAG="${FLAGPOLE_IMAGE_TAG:-$(yq -r '.spec.template.spec.containers[0].image' \
+  "$ROOT/deploy/base/api/deployment.yaml" | sed 's/.*://')}"
 
 say() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 die() { printf '\033[31m%s\033[0m\n' "$1" >&2; exit 1; }
@@ -22,6 +26,11 @@ k3d cluster list -o json | jq -e --arg n "$CLUSTER" '.[] | select(.name == $n)' 
   || die "no k3d cluster called '$CLUSTER' — run: make cluster-up"
 
 say "images"
+version="$(cat "$ROOT/VERSION")"
+if [[ "$TAG" != "$version" ]]; then
+  echo "  note: VERSION says $version, the manifests ask for $TAG — importing $TAG."
+  echo "        Renovate proposes the bump in deploy/ once $version is published."
+fi
 images=()
 for name in api consumer web; do
   image="$REGISTRY/flagpole-$name:$TAG"

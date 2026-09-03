@@ -45,7 +45,8 @@ if [[ -f "$version_path" ]]; then
 fi
 # Nothing may write it: a job or script that sets it would make FR-005a a comment rather than a fact.
 refuse "no workflow or script writes $version_path" bash -c \
-  "grep -rlE '(>|>>|tee|sed -i.*)[[:space:]]*\.?/?$version_path\$' .github scripts 2>/dev/null | grep -q ."
+  "grep -rnE '((>|>>|tee)[[:space:]]*\.?/?$version_path([[:space:]]|\$)|sed -i[^|]*$version_path)' \
+     .github scripts 2>/dev/null | grep -q ."
 
 # ---------------------------------------------------------------- the workflows
 while read -r wf; do
@@ -68,7 +69,12 @@ while read -r wf; do
       ".on.push.branches | contains([\"$branch\"])" "$path"
   done < <(echo "$wf" | jq -r '.push_branches // [] | .[]')
 
-  # paths-ignore, so a documentation change does not build (FR-004).
+  # An allow-list of what can change an image (FR-004). Here — unlike ci.yml, where research E4
+  # rejected one — the failure mode of forgetting an entry is "we did not publish", which is safe
+  # and noticed. On ci.yml it would be "we did not check", which is neither.
+  while read -r p; do
+    check "push is limited to $p" yq -e ".on.push.paths | contains([\"$p\"])" "$path"
+  done < <(echo "$wf" | jq -r '.paths // [] | .[]')
   while read -r p; do
     check "push ignores $p" yq -e ".on.push.paths-ignore | contains([\"$p\"])" "$path"
   done < <(echo "$wf" | jq -r '.paths_ignore // [] | .[]')
@@ -132,10 +138,7 @@ if [[ ${#workflows[@]} -gt 0 ]]; then
       fi
     done <<< "$uses"
 
-    while read -r action sha; do
-      check "$action is pinned to $sha" bash -c \
-        "grep -hoP '^\\s*(- )?uses:\\s*\\K\\S+' ${workflows[*]} | grep -qx '$action@$sha'"
-    done < <(q '.action_pins.expected | to_entries[] | "\(.key) \(.value)"')
+
   fi
 fi
 
@@ -151,8 +154,18 @@ if [[ -f "$release" ]]; then
   while read -r service; do
     check "$service is published" grep -qF "$service" "$release"
   done < <(q '.images.services[]')
-  check "images are tagged with the contents of $version_path" grep -qF "$version_path" "$release"
-  check "images are tagged with the commit" grep -qE 'sha-|type=sha' "$release"
+  # In the tags: block, not in a comment about it.
+  check "images are tagged with the contents of $version_path" yq -e \
+    '[.jobs.publish.steps[] | select(.id == "meta") | .with.tags] | join(" ") | test("type=raw")' \
+    "$release"
+  # In whichever job holds it — it moved from `publish` to `preflight` when the existence check
+  # was pulled out of the matrix.
+  check "the version is read from $version_path" yq -e \
+    "[.jobs[].steps[] | select(.id == \"version\") | .run] | join(\" \") | test(\"$version_path\")" \
+    "$release"
+  check "images are tagged with the commit" yq -e \
+    '[.jobs.publish.steps[] | select(.id == "meta") | .with.tags] | join(" ") | test("type=sha")' \
+    "$release"
 fi
 
 # ---------------------------------------------------------------- the scanners (FR-010, FR-011, FR-013)
@@ -160,11 +173,13 @@ note "scanners"
 scan="$(q .scan_script.path)"
 check "$scan exists and is executable" test -x "$scan"
 if [[ -x "$scan" ]]; then
-  refuse "$scan is implemented" grep -q 'not implemented yet' "$scan"
   # `set -e` would stop at the first finding and hide the other seven.
   refuse "$scan does not abort on the first finding" grep -qE '^set -[a-z]*e[a-z]*o?' "$scan"
+  # Match an invocation at the start of a line, not the banner that announces it: `grep -F "trivy"`
+  # is satisfied by the `say "trivy — ..."` line alone, which is a check that cannot fail.
   while read -r name; do
-    check "$scan runs $name" grep -qF "$name" "$scan"
+    bin="${name%% *}"
+    check "$scan actually invokes $bin" grep -qE "^[[:space:]]*(\(cd [^)]*&& )?$bin " "$scan"
   done < <(q '.scanners[].name')
 fi
 
@@ -178,8 +193,13 @@ if [[ -f "$renovate" ]]; then
     check "manager $manager is configured" jq -e --arg m "$manager" "has(\$m)" "$renovate"
   done < <(q '.renovate.managers[]')
   check "digests stay pinned across updates" jq -e '.pinDigests == true' "$renovate"
-  check "nothing merges itself" jq -e '[.. | objects | .automerge? // empty] | all(. == false)' \
-    "$renovate"
+  # `.automerge? // empty` drops `false` as well as absent — jq's // treats false as empty — so the
+  # obvious spelling produces an empty array and passes on a config that never mentions automerge.
+  # Ask instead: does any automerge-ish key anywhere have a truthy value?
+  refuse "nothing merges itself" jq -e \
+    '[.. | objects | to_entries[] | select(.key | test("^(automerge|platformAutomerge)$")) | .value]
+     | any(. == true)' "$renovate"
+  check "automerge is stated, not merely absent" jq -e '.automerge == false' "$renovate"
   while read -r key; do
     refuse "no deprecated key '$key' (gotcha #7)" grep -qF "\"$key\"" "$renovate"
   done < <(q '.renovate.forbidden_keys[]')

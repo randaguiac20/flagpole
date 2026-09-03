@@ -78,7 +78,7 @@ a merged proposal reaches the cluster with no manual step.
 - [X] T035 [P] Add to `docs/anti-patterns.md`: CodeQL alongside semgrep, SBOM and signing with no consumer, a version-inferring release tool, Flux image automation duplicating Renovate, a nightly scheduled scan
 - [X] T036 [P] Add to `docs/gotchas.md`: the `workflow` token scope on HTTPS pushes (research E3), `fileMatch` → `managerFilePatterns`, `set -e` hiding seven of eight scanners, `pull_request_target` with a fork's code
 - [X] T037 Update `docs/walkthrough.md` with the real output of `make scan`, `scripts/check-ci-contract.sh` and one Renovate proposal
-- [ ] T038 Run the `code-reviewer` agent over the diff against `.claude/rules/` and this spec; act on what it finds
+- [X] T038 Run the `code-reviewer` agent over the diff against `.claude/rules/` and this spec; act on what it finds — **request-changes, 15 findings**. All five HIGH and all six MEDIUM fixed; each fix proved by breaking it. The three LOW nits (unscored osv severities, the assertions that passed for the wrong reason, the manifest comment's missing spec reference) are fixed too. Recorded as gotchas #40-#43 and in `docs/security-findings.md`.
 - [ ] T039 Run `make test`, `make test-hooks`, `make scan` and `scripts/check-ci-contract.sh` one last time and show the output; then merge to `main`
 
 ## Dependencies

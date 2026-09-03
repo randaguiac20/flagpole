@@ -81,9 +81,10 @@
       "schedule": ["at any time"]
     },
     {
-      "description": "The images this repository publishes are updated by release.yml and the VERSION file, not by an updater proposing a bump to itself.",
+      "description": "The images this repository publishes DO get proposed in deploy/ — that is the whole chain: release.yml publishes, Renovate sees the newer tag, it proposes the bump, a person merges it, Flux reconciles (SC-005). An earlier version of this file disabled them, which silently broke that chain while the comment three sections up claimed it worked. They are separated from the third-party image group so the proposal is reviewed on its own.",
       "matchPackageNames": ["/^ghcr\\.io/randaguiac20/flagpole-/"],
-      "enabled": false
+      "groupName": "flagpole images",
+      "automerge": false
     }
   ]
 }

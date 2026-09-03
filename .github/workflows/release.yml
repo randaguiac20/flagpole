@@ -9,12 +9,18 @@ name: release
 on:
   push:
     branches: [main]
-    # A documentation change must not build (FR-004). Expressed in the trigger, where it can be
-    # read, rather than as a condition on every job.
-    paths-ignore:
-      - 'docs/**'
-      - 'specs/**'
-      - '**/*.md'
+    # An allow-list of what can actually change an image. An ignore-list was tried first and fired
+    # on every chore commit — republishing three images for a change to a hook, and turning `main`
+    # red because VERSION had not moved for a change that did not earn a version.
+    #
+    # ci.yml deliberately has no filter at all (research E4): there, forgetting an entry means "we
+    # did not check". Here it means "we did not publish", which is safe and immediately visible.
+    paths:
+      - 'backend/**'
+      - 'consumer/**'
+      - 'frontend/**'
+      - 'VERSION'
+      - '.github/workflows/release.yml'
 
 permissions:
   contents: read
@@ -24,13 +30,62 @@ concurrency:
   cancel-in-progress: false     # never cancel a half-finished publish
 
 jobs:
+  # All three tags are checked before ANY build starts. Doing it inside the matrix meant service
+  # one could publish and service two then refuse, leaving exactly the partially published set the
+  # spec's edge case forbids.
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The version is read, never written. Nothing in this repository increments it; a person does,
+      # in the change that earns it (FR-005a).
+      - id: version
+        run: |
+          value=$(cat VERSION)
+          if ! [[ "$value" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=VERSION::'$value' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publishing a version that already exists would silently move a tag other people have
+      # pulled. Fail before anything is built, naming the file to change.
+      - name: refuse to republish an existing version
+        run: |
+          taken=()
+          for service in flagpole-api flagpole-consumer flagpole-web; do
+            image="ghcr.io/${{ github.repository_owner }}/$service"
+            if docker manifest inspect "$image:${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
+              taken+=("$image")
+            fi
+          done
+          if [[ ${#taken[@]} -gt 0 ]]; then
+            echo "::error file=VERSION::${taken[*]} already published at ${{ steps.version.outputs.value }}"
+            echo "Bump VERSION in the change that earns it, then push again." >&2
+            exit 1
+          fi
+          echo "${{ steps.version.outputs.value }} is free on all three repositories"
+
   publish:
+    needs: preflight
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write           # the only write scope in this repository, on the only job that needs it
     strategy:
-      fail-fast: false
+      # Stop the moment one service fails. It cannot make publishing atomic — a registry has no
+      # transaction — but combined with `preflight` it removes the one cause that was certain to
+      # leave a partial set behind. The residual case is recorded in the spec's edge cases.
+      fail-fast: true
       matrix:
         include:
           - {service: flagpole-api, context: backend}
@@ -39,28 +94,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The version is read, never written. Nothing in this repository increments it; a person does,
-      # in the change that earns it (FR-005a).
-      - id: version
-        run: echo "value=$(cat VERSION)" >> "$GITHUB_OUTPUT"
-
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Publishing a version that already exists would silently move a tag other people have pulled.
-      # Fail instead, naming the file to change.
-      - name: refuse to republish an existing version
-        run: |
-          image="ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}"
-          if docker manifest inspect "$image:${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
-            echo "::error file=VERSION::$image:${{ steps.version.outputs.value }} already exists."
-            echo "Bump VERSION in the change that earns it, then push again." >&2
-            exit 1
-          fi
-          echo "$image:${{ steps.version.outputs.value }} is not published yet"
 
       - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
@@ -71,10 +109,10 @@ jobs:
           # Two tags on one digest: the version a person reads in deploy/, and the commit that
           # answers "where did this image come from" (SC-004).
           tags: |
-            type=raw,value=${{ steps.version.outputs.value }}
+            type=raw,value=${{ needs.preflight.outputs.version }}
             type=sha,prefix=sha-,format=short
           labels: |
-            org.opencontainers.image.version=${{ steps.version.outputs.value }}
+            org.opencontainers.image.version=${{ needs.preflight.outputs.version }}
 
       - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
