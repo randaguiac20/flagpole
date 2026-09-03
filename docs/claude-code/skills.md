@@ -1,5 +1,8 @@
 # Skills: `.claude/skills/<name>/SKILL.md`
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 5 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/skills
 
 ## What / where

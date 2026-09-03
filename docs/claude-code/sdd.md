@@ -1,5 +1,8 @@
 # Spec-Driven Development with GitHub Spec Kit
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 9 builds up to this page.*
+
+
 Source: https://github.com/github/spec-kit (README, `docs/installation.md`) · release v1.0.3 (2026-09-01)
 
 ## What Spec Kit is, and how it extends Claude Code

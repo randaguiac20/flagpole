@@ -1,5 +1,8 @@
 # Rules: `.claude/rules/*.md`
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 2 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/
 
 ## What / where

@@ -1,5 +1,8 @@
 # Settings and permissions
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 3 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/settings · https://code.claude.com/docs/en/permissions · https://code.claude.com/docs/en/permission-modes
 
 ## Where settings live, and precedence (highest first)

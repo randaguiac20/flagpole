@@ -1,5 +1,8 @@
 # Hooks
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 4 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/hooks (reference) · https://code.claude.com/docs/en/hooks-guide
 
 ## What / where

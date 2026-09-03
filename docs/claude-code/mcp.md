@@ -1,5 +1,8 @@
 # MCP servers
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 7 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/mcp
 
 ## What / where

@@ -1,5 +1,8 @@
 # Plugins: `plugins/<name>/` + `.claude-plugin/marketplace.json`
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 8 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/plugins-reference and https://code.claude.com/docs/en/plugin-marketplaces
 
 ## What / where

@@ -1,5 +1,8 @@
 # Memory: CLAUDE.md in every scope
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 1 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/memory · https://code.claude.com/docs/en/features-overview
 
 ## What / where

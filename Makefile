@@ -24,6 +24,7 @@ dev: ## run api/web/consumer/dex locally on the ports from .env(.example)
 test: test-hooks ## all unit tests + contract drift check (backend, consumer, mcp, frontend)
 	@for d in backend consumer mcp/flagpole-mcp; do [ -f $$d/pyproject.toml ] && (cd $$d && uv run pytest -q) || true; done
 	@[ -f frontend/package.json ] && (cd frontend && npm run api:types:check && npm test) || true
+	@out=$$(scripts/check-tutorial.sh) || { echo "$$out"; exit 1; }; echo "$$out" | tail -1
 
 test-fast: test-hooks ## the subset the Stop hook runs (< 60 s): hook tests + python unit tests
 	@for d in backend consumer mcp/flagpole-mcp; do [ -f $$d/pyproject.toml ] && (cd $$d && uv run pytest -q -x -p no:cacheprovider) || true; done

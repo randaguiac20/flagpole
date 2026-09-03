@@ -1,5 +1,8 @@
 # Subagents: `.claude/agents/*.md`
 
+*New to this? [`docs/TUTORIAL.md`](../TUTORIAL.md) lesson 6 builds up to this page.*
+
+
 Source: https://code.claude.com/docs/en/sub-agents
 
 ## What / where
