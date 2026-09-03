@@ -19,7 +19,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: flagpole-consumer
-          image: ghcr.io/randaguiac20/flagpole-consumer:0.1.0
+          image: ghcr.io/randaguiac20/flagpole-consumer:0.1.0@sha256:a13e81cc8cb6e0392f58b6df69b865ab22e72523527251dc2735faeee16d6519
           ports:
             - {name: http, containerPort: 8000}
           envFrom:
