@@ -20,12 +20,26 @@ fi
 rc=0
 for file in "${files[@]}"; do
   [[ -f "$file" ]] || continue
+
+  # The stage names this file declares, from `FROM <image> AS <name>`. Collected first, because
+  # deciding "is this token a stage or an image?" by punctuation is wrong: `FROM alpine` has no
+  # colon and no slash, and the old `*[:/]*` test skipped it as if it were a stage name. It is an
+  # unpinned base image with an implicit :latest — the single worst case this script exists to
+  # catch — and the probe in the header above returned 0 for it. A check that cannot fail is not a
+  # check; see gotchas #37 and #42.
+  mapfile -t stages < <(grep -hoiP '^FROM[[:space:]]+\S+[[:space:]]+AS[[:space:]]+\K\S+' "$file" \
+    | tr '[:upper:]' '[:lower:]')
+
   # `FROM <image> [AS stage]` and `COPY --from=<image>`. The trailing `+` matters: `[^ ]*` after an
   # alternation that does not consume the space matches the empty string, and the check then passes
   # while inspecting nothing — which is exactly what it did on the first attempt.
   while read -r image; do
-    # A stage name (COPY --from=build) is not an image and has nothing to pin.
-    [[ "$image" == *[:/]* ]] || continue
+    # A reference to a stage this same file declares is not an image and has nothing to pin.
+    is_stage=0
+    for stage in ${stages[@]+"${stages[@]}"}; do
+      [[ "${image,,}" == "$stage" ]] && { is_stage=1; break; }
+    done
+    [[ $is_stage -eq 1 ]] && continue
     if [[ "$image" != *"@sha256:"* ]]; then
       printf 'UNPINNED BASE: %s names %s without a digest (FR-002)\n' "${file#"$ROOT"/}" "$image" >&2
       rc=1

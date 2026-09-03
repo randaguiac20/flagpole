@@ -9,8 +9,11 @@ CLUSTER ?= $(or $(FLAGPOLE_CLUSTER_NAME),flagpole)
 
 .PHONY: help bootstrap dev test test-fast test-hooks scan build cluster-up deploy e2e clean
 
+# -h matters: `-include .env` puts a second file in MAKEFILE_LIST as soon as .env exists, and grep
+# then prefixes every line with its filename, so awk printed "Makefile" as the target name for every
+# row. Invisible until the first `make bootstrap` created .env.
 help: ## list targets
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n",$$1,$$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-14s %s\n",$$1,$$2}'
 
 bootstrap: ## check tools, install deps, create the age key OUTSIDE the repo, install pre-commit
 	@scripts/bootstrap.sh
