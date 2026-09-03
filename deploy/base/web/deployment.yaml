@@ -18,7 +18,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: flagpole-web
-          image: ghcr.io/randaguiac20/flagpole-web:0.1.0
+          image: ghcr.io/randaguiac20/flagpole-web:0.1.0@sha256:e5e9ffe6e39cd745619793f73c5df80e389f1f905a1ebb3c3f791b30f2e7abe1
           ports:
             - {name: http, containerPort: 8080}
           # The identity provider's address is configuration, not a build-time constant (FR-011):

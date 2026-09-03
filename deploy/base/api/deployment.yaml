@@ -21,7 +21,7 @@ spec:
         # The schema is current before the container that serves ever starts (FR-012). The lock
         # inside makes this safe with more than one replica — see backend/app/migrate.py.
         - name: migrate
-          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0@sha256:94df9c73b0bd617f7d09671c62eebd7bb7ff8db07d3adef2d8f4039e83a2405d
           command: ["python", "-m", "app.migrate"]
           envFrom:
             - configMapRef: {name: flagpole-api}
@@ -39,7 +39,7 @@ spec:
         # (it returns early when the flag exists), and ordered after the migration because it needs
         # the schema. Without it the cluster comes up correct and empty, which looks broken.
         - name: seed
-          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0@sha256:94df9c73b0bd617f7d09671c62eebd7bb7ff8db07d3adef2d8f4039e83a2405d
           command: ["python", "-m", "app.seed"]
           envFrom:
             - configMapRef: {name: flagpole-api}
@@ -52,7 +52,7 @@ spec:
             limits: {memory: 256Mi}
       containers:
         - name: flagpole-api
-          image: ghcr.io/randaguiac20/flagpole-api:0.1.0
+          image: ghcr.io/randaguiac20/flagpole-api:0.1.0@sha256:94df9c73b0bd617f7d09671c62eebd7bb7ff8db07d3adef2d8f4039e83a2405d
           ports:
             - {name: http, containerPort: 8000}
           envFrom:
