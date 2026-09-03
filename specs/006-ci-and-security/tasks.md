@@ -64,10 +64,10 @@ a merged proposal reaches the cluster with no manual step.
 
 **Independent test**: `make scan` exits 0, and every finding it reported has a row.
 
-- [ ] T027 [US3] Reconcile `docs/security-findings.md` against a fresh `make scan`: no row without a finding, no finding without a row (SC-006)
+- [X] T027 [US3] Reconcile `docs/security-findings.md` against a fresh `make scan`: no row without a finding, no finding without a row (SC-006)
 - [ ] T028 [US3] Prove SC-007: run `make scan` locally and compare its findings with the `scan` job's output for the same commit; they must agree, and if they do not, say which is right and why
 - [ ] T029 [US3] Prove FR-014 and SC-008: download the full log of the most recent run and run `gitleaks detect --no-git` over it, plus a grep for `ghp_`, `gho_`, `github_pat_`, private-key headers and `age1…`. Expect nothing
-- [ ] T030 [US3] Add a `deferred` example with a condition that ends it, so the format shows what an honest deferral looks like — or, if nothing is genuinely deferred, say so rather than inventing one
+- [X] T030 [US3] Add a `deferred` example with a condition that ends it, so the format shows what an honest deferral looks like — or, if nothing is genuinely deferred, say so rather than inventing one
 
 ## Phase 6: Polish & cross-cutting
 

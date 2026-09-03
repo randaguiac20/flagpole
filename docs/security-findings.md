@@ -34,6 +34,12 @@ decided something about it.
 
 ## Findings
 
+**Nothing is currently deferred.** The two open rows are `accepted` — a decision that something is
+tolerable — not `deferred`, which would mean a decision postponed. If a `deferred` row ever appears
+here it must name the condition that ends it ("until the chart publishes a release including the
+fix"), never a date.
+
+
 | Date | Scanner | Identifier | Severity | Where | Decision | Reason |
 |---|---|---|---|---|---|---|
 | 2026-09-02 | trivy | KSV-0046 | CRITICAL | `clusters/local/flux-system/gotk-components.yaml` — ClusterRoles `crd-controller-flux-system`, `flux-edit-flux-system`, `flux-view-flux-system` | accepted | Written by `flux bootstrap`, not by this repository. The controllers reconcile arbitrary Kubernetes objects from git, so a wildcard is what that job is; narrowing it would stop reconciliation. Changing it also loses the next `flux bootstrap`. The mitigation is elsewhere: only `flux-system` holds this, and the GitOps hook plus `permissions.deny` stop anything else writing to the cluster. |
