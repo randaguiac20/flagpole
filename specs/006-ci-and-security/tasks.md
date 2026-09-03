@@ -36,10 +36,10 @@ and the failure is visible on the change itself.
 - [X] T013 [P] [US1] Add job `test-hooks` — `make test-hooks`, so the mechanisms that guard this repository are themselves checked (FR-001)
 - [X] T014 [US1] Add job `scan` — `make scan`, the same command as locally, so the local and automated runs cannot drift (FR-013)
 - [X] T015 [US1] Run `actionlint .github/workflows/ci.yml` and `scripts/check-ci-contract.sh`; both must pass. Then flip `pull_request` to `pull_request_target` and show the contract check failing and naming FR-007, and put it back
-- [ ] T016 [US1] Push the branch, open the change, and show every job green (`gh pr checks --watch`)
+- [X] T016 [US1] Push the branch, open the change, and show every job green (`gh pr checks --watch`)
 - [X] T016a [US1] Prove FR-006: show `scripts/check-ci-contract.sh` refusing a workflow that names `kubectl` or a kubeconfig secret — continuous integration stops at a published image and never writes to the cluster
-- [ ] T016b [US1] Measure SC-002: `gh run list --json databaseId,createdAt,updatedAt` for the last run, and record the wall-clock time. Under 10 minutes, or split a job — do not raise the budget
-- [ ] T017 [US1] Prove SC-001: break one backend assertion, push, show `test-backend` red on the change, revert
+- [X] T016b [US1] Measure SC-002: `gh run list --json databaseId,createdAt,updatedAt` for the last run, and record the wall-clock time. Under 10 minutes, or split a job — do not raise the budget
+- [X] T017 [US1] Prove SC-001: break one backend assertion, push, show `test-backend` red on the change, revert
 
 ## Phase 4: User Story 2 — dependencies are proposed, not chased (P1)
 
@@ -52,7 +52,7 @@ a merged proposal reaches the cluster with no manual step.
 - [X] T019 [US2] Validate it: `npx --yes --package renovate -- renovate-config-validator renovate.json`, and show the output. Then plant a `fileMatch` key and show the validator refusing it, so the CI step is known to bite
 - [X] T020 [US2] Write `.github/workflows/release.yml`: `push` to `main` with `paths-ignore` for `docs/**`, `specs/**` and `**/*.md`; `permissions: {contents: read, packages: write}` on the `publish` job alone; build and push the three images tagged with `VERSION` and `sha-<short commit>`, with OCI revision/source labels
 - [X] T021 [US2] Add the republish guard: before building, query the registry for the tag in `VERSION` and fail with "bump VERSION" rather than moving a tag someone may have pulled (research E7)
-- [ ] T022 [US2] Prove FR-004: push a documentation-only commit and show `gh run list` — a `ci` run and no `release` run
+- [ ] T022 [US2] Prove FR-004: push a documentation-only commit and show `gh run list` — a `ci` run and no `release` run. **Half done**: run 40b4ba9 shows the `ci` run on the branch. The absence of a `release` run is not evidence yet — `release.yml` triggers only on `push` to `main`, so no branch push could produce one. Conclusive at merge (T023).
 - [ ] T023 [US2] Merge to `main`, watch `release.yml`, and show both tags on `flagpole-api` in the registry plus the `org.opencontainers.image.revision` label matching the commit (SC-004)
 - [X] T024 [US2] Write `docs/renovate.md`: what each manager covers, why `pre-commit` and `kubernetes` must be enabled explicitly, how the grouping is chosen, and what stays pinned by hand and why
 - [ ] T025 [US2] **User action**: install the Mend Renovate app on `randaguiac20/flagpole` (an account action Claude cannot take). Then show the Dependency Dashboard issue and the first proposals
@@ -65,8 +65,8 @@ a merged proposal reaches the cluster with no manual step.
 **Independent test**: `make scan` exits 0, and every finding it reported has a row.
 
 - [X] T027 [US3] Reconcile `docs/security-findings.md` against a fresh `make scan`: no row without a finding, no finding without a row (SC-006)
-- [ ] T028 [US3] Prove SC-007: run `make scan` locally and compare its findings with the `scan` job's output for the same commit; they must agree, and if they do not, say which is right and why
-- [ ] T029 [US3] Prove FR-014 and SC-008: download the full log of the most recent run and run `gitleaks detect --no-git` over it, plus a grep for `ghp_`, `gho_`, `github_pat_`, private-key headers and `age1…`. Expect nothing
+- [X] T028 [US3] Prove SC-007: run `make scan` locally and compare its findings with the `scan` job's output for the same commit; they must agree, and if they do not, say which is right and why
+- [X] T029 [US3] Prove FR-014 and SC-008: download the full log of the most recent run and run `gitleaks detect --no-git` over it, plus a grep for `ghp_`, `gho_`, `github_pat_`, private-key headers and `age1…`. Expect nothing
 - [X] T030 [US3] Add a `deferred` example with a condition that ends it, so the format shows what an honest deferral looks like — or, if nothing is genuinely deferred, say so rather than inventing one
 
 ## Phase 6: Polish & cross-cutting
