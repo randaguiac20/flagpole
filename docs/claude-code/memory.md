@@ -26,7 +26,7 @@ Imports: `@path` (relative to the importing file, or absolute, or `@~/...`), max
 
 ## Our implementation
 
-- `CLAUDE.md`: 54 lines, imports `@docs/architecture.md` (Mermaid + the three "environment" appearances), links to `.specify/memory/constitution.md` and `specs/`.
+- `CLAUDE.md`: 57 lines, imports `@docs/architecture.md` (Mermaid + the three "environment" appearances), links to `.specify/memory/constitution.md` and `specs/`.
 - `CLAUDE.local.md.example`: sandbox facts and the worktree caveat (a worktree does not see your `CLAUDE.local.md`; import a file outside the repo instead).
 - `claude-setup/`: managed and user examples with installers that never run sudo.
 - Auto memory: this project's memory holds the confirmed decisions (`flagpole-confirmed-decisions`), shown in the walkthrough.

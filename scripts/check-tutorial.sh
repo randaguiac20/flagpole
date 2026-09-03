@@ -105,6 +105,11 @@ rows=$(grep -cE '^\| [0-9]+ \|' docs/gotchas.md)
 if grep -q "gotchas.md\` — $rows rows" "$DOC"; then ok "gotcha count ($rows) matches docs/gotchas.md"
 else bad "the tutorial's gotcha count does not match docs/gotchas.md ($rows rows)"; fi
 
+# README quotes the same number and is not covered by any other check — it is the file that said
+# "47 rows" while gotchas.md held 50, for exactly as long as nobody counted.
+if grep -q "gotchas.md\` ($rows rows" README.md; then ok "README's gotcha count ($rows) matches"
+else bad "README's gotcha count does not match docs/gotchas.md ($rows rows)"; fi
+
 claude_md=$(wc -l < CLAUDE.md)
 if grep -qE "# $claude_md\$|\| $claude_md \|" "$DOC" || grep -q "wc -l CLAUDE.md          # $claude_md" "$DOC"; then
   ok "CLAUDE.md line count ($claude_md) matches"

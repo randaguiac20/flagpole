@@ -11,7 +11,18 @@ uv run pytest -q                          # all scenarios; no network, temp SQLi
 uv run uvicorn app.main:create_app --factory --port 18000  # or: make dev (from repo root)
 ```
 
-Prove the feature (with `make dev` running Dex on 18030; tokens from `scripts/dev-token.sh <user>` in feature 002/003 — until then use the test token factory):
+Prove the feature. Start Dex (`make dev`, or `docker compose -f docker-compose.dev.yaml up -d dex`), then
+mint real tokens — `scripts/dev-token.sh` performs the same authorization-code + PKCE exchange the browser
+does:
+
+```bash
+OP=$(scripts/dev-token.sh alice)     # operator
+VW=$(scripts/dev-token.sh bob)       # viewer
+scripts/dev-token.sh alice --claims  # the groups claim the role is derived from
+```
+
+Observed 2026-09-03 against a freshly migrated and seeded database: `401` unauthenticated, `200` operator
+read, `200` operator write, `403` viewer write.
 
 | Scenario | Command | Expect |
 |---|---|---|

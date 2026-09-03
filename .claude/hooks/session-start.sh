@@ -22,8 +22,13 @@ fi
 
 flux_state="n/a (no cluster)"
 if [[ "$k3d_state" == *running* ]] && command -v flux >/dev/null 2>&1; then
+  # $5 is READY. $4 is SUSPENDED, which is what this printed for months: a perfectly healthy
+  # cluster reported every kustomization as `=False`, and a SUSPENDED one — the state actually
+  # worth knowing about, because it means Flux has stopped reconciling — would have read `=True`.
+  # Inverted for the only signal this line exists to carry. With -A the columns are
+  # NAMESPACE NAME REVISION SUSPENDED READY MESSAGE.
   flux_state="$(timeout 4 flux --context "k3d-$cluster" get kustomizations -A --no-header 2>/dev/null \
-    | awk '{printf "%s=%s ", $2, $4}')"
+    | awk '{printf "%s=%s ", $2, $5}')"
   flux_state="${flux_state:-flux not bootstrapped}"
 fi
 

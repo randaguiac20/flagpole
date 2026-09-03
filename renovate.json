@@ -130,6 +130,19 @@
       ],
       "groupName": "flagpole images",
       "automerge": false
+    },
+    {
+      "description": "Node is pinned in three places -- .mise.toml, the setup-node step in ci.yml, and the digest in frontend/Dockerfile -- and the default grouping puts the first two in 'tooling' and the third in 'container images'. Two groups means two PRs means drift: today the image is 24.20.0 while the tests run on 24.18.0. Gotcha #50 is the same mechanism with Dex, and it shipped a broken role to every user. Whether this rule matches all three is decided by Renovate server-side and is not verifiable from this repository; scripts/check-ci-contract.sh asserts the two that are.",
+      "groupName": "node runtime",
+      "matchPackageNames": [
+        "node"
+      ],
+      "matchManagers": [
+        "mise",
+        "dockerfile",
+        "github-actions",
+        "npm"
+      ]
     }
   ]
 }

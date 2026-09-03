@@ -8,7 +8,10 @@
 #   mise trust && mise install     # once, after cloning
 [tools]
 actionlint    = "1.7.12"
-node          = "24.18.0"  # the major frontend/Dockerfile builds with, pinned to the patch
+node          = "24.18.0"  # tests and CI. NOT the patch frontend/Dockerfile ships: its digest
+                           # resolves to 24.20.0. Same major, different patch, and the two are
+                           # bumped by different Renovate groups. See gotcha #55 before "fixing"
+                           # this by hand — the pins are checked against CI, not against the image.
 uv            = "0.11.31"  # the version backend/Dockerfile copies in
 gitleaks      = "8.30.1"
 hadolint      = "2.15.1"

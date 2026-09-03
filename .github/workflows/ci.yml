@@ -143,6 +143,13 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scanner-output
+          # .scan/ is a dot-directory and upload-artifact v4+ defaults to include-hidden-files:
+          # false, so BOTH globs below matched nothing and the step uploaded an empty artifact --
+          # greenly, because if-no-files-found defaults to `warn`. Weeks of runs left no evidence
+          # trail at all. Two defaults, neither of them visible in this file until they were named.
+          include-hidden-files: true
+          # An artifact with no files is a broken step, not a warning (gotchas #37, #53).
+          if-no-files-found: error
           # The identifiers and the summary, never the raw reports: trivy's secret scanner embeds
           # the matched line verbatim, and this artifact is downloadable by anyone who can read the
           # repository (FR-014).

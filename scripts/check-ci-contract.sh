@@ -183,6 +183,37 @@ if [[ -x "$scan" ]]; then
   done < <(q '.scanners[].name')
 fi
 
+# ---------------------------------------------------------------- the scanner artifact
+# Two upload-artifact defaults conspired here: hidden paths are excluded, and "no files found" is a
+# warning. The step went green for weeks while uploading nothing, so the evidence trail for every
+# scan was silently absent. Neither default appears in the workflow file, which is exactly why the
+# contract has to name them.
+note "scanner artifact"
+art_wf="$(q .artifacts.workflow)"
+art_job="$(q .artifacts.job)"
+up=".jobs.${art_job}.steps[] | select(.uses // \"\" | test(\"actions/upload-artifact\"))"
+check "$art_wf has exactly one upload-artifact step in the $art_job job" \
+  yq -e "[$up] | length == 1" "$art_wf"
+check "the scanner artifact includes hidden paths — .scan/ is a dot-directory" \
+  yq -e "[$up | .with.\"include-hidden-files\" | select(. == true)] | length == 1" "$art_wf"
+check "an empty scanner artifact fails the job rather than warning" \
+  yq -e "[$up | .with.\"if-no-files-found\" | select(. == \"$(q .artifacts.if_no_files_found)\")] | length == 1" "$art_wf"
+
+# ---------------------------------------------------------------- runtime pins
+# Two of the three node pins can be compared without a network. The third is a digest in
+# frontend/Dockerfile, and it is currently a DIFFERENT patch (24.20.0 vs 24.18.0) -- the contract
+# records that as unchecked rather than pretending the three agree.
+note "runtime pins"
+mise_file="$(q .runtime_pins.mise_file)"
+pin_wf="$(q .runtime_pins.workflow)"
+mise_node="$(grep -oE '^node[[:space:]]*=[[:space:]]*"[^"]+"' "$mise_file" | grep -oE '[0-9]+(\.[0-9]+)*')"
+ci_node="$(grep -oE "node-version:[[:space:]]*'[^']+'" "$pin_wf" | grep -oE "[0-9]+(\.[0-9]+)*" | head -1)"
+if [[ -n "$mise_node" && -n "$ci_node" && "$mise_node" == "$ci_node" ]]; then
+  ok "node is pinned to the same version in $mise_file and $pin_wf ($mise_node)"
+else
+  bad "node pins disagree: $mise_file=${mise_node:-none} $pin_wf=${ci_node:-none}"
+fi
+
 # ---------------------------------------------------------------- dependency updates (FR-008, FR-009)
 note "renovate"
 renovate="$(q .renovate.path)"

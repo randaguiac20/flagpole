@@ -156,6 +156,20 @@
     "missing_tool_is_a_failure": true,
     "requirement": "FR-010, FR-011, FR-013"
   },
+  "artifacts": {
+    "$comment": "The scanner artifact. .scan/ is a dot-directory, and actions/upload-artifact v4+ skips hidden paths unless told otherwise, so the defaults uploaded nothing and said so only as a warning. Both keys below are the fix and the regression guard.",
+    "workflow": ".github/workflows/ci.yml",
+    "job": "scan",
+    "include_hidden_files": true,
+    "if_no_files_found": "error"
+  },
+  "runtime_pins": {
+    "$comment": "The node version must be identical in .mise.toml and the CI setup-node step: those are the runtime the tests run on, and they are bumped by the same Renovate group. The third pin -- the digest in frontend/Dockerfile -- is the runtime that SHIPS, and it cannot be compared here without resolving the digest, so it is named as unchecked rather than silently assumed equal. Gotchas #50 and #55.",
+    "mise_file": ".mise.toml",
+    "workflow": ".github/workflows/ci.yml",
+    "tool": "node",
+    "unchecked_here": "frontend/Dockerfile image digest"
+  },
   "renovate": {
     "path": "renovate.json",
     "managers": [

@@ -524,7 +524,7 @@ Then either:
 - **Rebuild this one** — `docs/BLUEPRINT.md`, asserted by `scripts/check-blueprint.sh`.
 
 Whatever you build, keep the habit that made this repository worth reading: **prove every guard by
-breaking it first.** Fifty-two rows in `docs/gotchas.md` exist because someone ran the command
+breaking it first.** Fifty-seven rows in `docs/gotchas.md` exist because someone ran the command
 instead of trusting the documentation — including four checks that passed while doing nothing at
 all, one of which was found by running lesson 4 of this tutorial.
 
@@ -566,6 +566,6 @@ Full detail: `docs/walkthrough.md`, and gotcha **#48**.
 | Depth on one mechanism | `docs/claude-code/<mechanism>.md` |
 | Why a component exists at all | `docs/decisions/` |
 | How each mechanism gets misused | `docs/anti-patterns.md` |
-| Where the docs disagreed with reality | `docs/gotchas.md` — 52 rows |
+| Where the docs disagreed with reality | `docs/gotchas.md` — 57 rows |
 | What actually happened, with output | `docs/walkthrough.md` |
 | Rebuild from empty | `docs/BLUEPRINT.md` |

@@ -79,6 +79,27 @@ check "emits OSC 777 terminalSequence" notify.sh '{"hook_event_name":"Notificati
 echo "session-start.sh"
 check "startup context has branch and key state" session-start.sh '{"hook_event_name":"SessionStart","source":"startup"}' 0 '.hookSpecificOutput.additionalContext|test("Branch: main") and test("age key: missing")'
 
+# The flux line reads a positional awk field out of `flux get kustomizations -A`, and for months it
+# read $4 (SUSPENDED) instead of $5 (READY): a healthy cluster reported =False on every session, and
+# a suspended one would have reported =True. Nothing caught it because the harness has no cluster,
+# so the probe never ran. Stubbing k3d and flux makes it run, with the real column layout.
+echo "session-start.sh (cluster probe, stubbed)"
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/k3d" <<'STUB'
+#!/usr/bin/env bash
+echo '[{"name":"flagpole","serversRunning":1,"serversCount":1}]'
+STUB
+# NAMESPACE NAME REVISION SUSPENDED READY MESSAGE — tab separated, as flux emits it.
+cat > "$TMP/bin/flux" <<'STUB'
+#!/usr/bin/env bash
+printf 'flux-system\tflagpole-dev\tmain@sha1:abc\tFalse\tTrue\tApplied revision: main@sha1:abc\n'
+printf 'flux-system\tplatform\tmain@sha1:abc\tTrue\tFalse\tSuspended\n'
+STUB
+chmod +x "$TMP/bin/k3d" "$TMP/bin/flux"
+PATH="$TMP/bin:$PATH" check "reports READY, not SUSPENDED" session-start.sh \
+  '{"hook_event_name":"SessionStart","source":"startup"}' 0 \
+  '.hookSpecificOutput.additionalContext|test("flagpole-dev=True") and test("platform=False")'
+
 echo "instructions-loaded.sh"
 check "appends a log line" instructions-loaded.sh "$(jq -nc --arg p "$TMP/CLAUDE.md" '{hook_event_name:"InstructionsLoaded",file_path:$p,memory_type:"Project",load_reason:"session_start"}')" 0 '' yes
 if grep -q "session_start.*Project.*CLAUDE.md" "$TMP/.claude/logs/instructions-loaded.log" 2>/dev/null; then pass=$((pass+1)); echo "  ok   log line present"; else fail=$((fail+1)); echo "  FAIL log line missing"; fi
