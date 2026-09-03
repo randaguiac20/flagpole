@@ -1,0 +1,24 @@
+# Every tool this repository's checks depend on, pinned to a version. Spec: 006-ci-and-security
+# FR-003, FR-008, FR-013.
+#
+# One file rather than eight install steps in a workflow: the local run and the automated run get
+# the same versions because they read the same file, which is what makes FR-013 ("the same findings
+# for the same commit") a fact rather than a hope. Renovate's `mise` manager proposes the bumps.
+#
+#   mise trust && mise install     # once, after cloning
+[tools]
+actionlint    = "1.7.12"
+gitleaks      = "8.30.1"
+hadolint      = "2.15.1"
+ruff          = "0.16.5"   # the same version .pre-commit-config.yaml pins
+"osv-scanner" = "2.5.1"
+shellcheck    = "0.11.0"
+trivy         = "0.74.0"
+yq            = "4.53.6"
+
+# The Python tools come from PyPI through mise's pipx backend, so they are pinned in the same place
+# as everything else rather than in a separate `uv tool install` step nobody re-runs.
+"pipx:bandit"     = "1.9.4"
+"pipx:pre-commit" = "4.6.1"
+"pipx:pip-audit"  = "2.10.1"
+"pipx:semgrep"    = "1.176.0"

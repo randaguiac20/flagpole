@@ -1,0 +1,89 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+
+  "description": "Spec: 006-ci-and-security FR-008, FR-009. Feature 005 pinned everything; this is the mechanism that keeps a pin from becoming a museum piece. Delivered by the Mend-hosted GitHub App, so nothing in this repository holds a token for it. The key is managerFilePatterns, never fileMatch: renamed in Renovate 41, and the validator MIGRATES the old name with a warning and exits 0 rather than refusing it, so scripts/check-ci-contract.sh is what actually catches it (gotcha #7).",
+
+  "timezone": "America/Denver",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 0,
+  "automerge": false,
+  "dependencyDashboard": true,
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps):",
+  "labels": ["dependencies"],
+
+  "pinDigests": true,
+
+  "pep621": {
+    "managerFilePatterns": [
+      "/^backend/pyproject\\.toml$/",
+      "/^consumer/pyproject\\.toml$/",
+      "/^mcp/flagpole-mcp/pyproject\\.toml$/"
+    ]
+  },
+  "npm": {
+    "managerFilePatterns": ["/^frontend/package\\.json$/"]
+  },
+  "dockerfile": {
+    "managerFilePatterns": ["/(^|/)Dockerfile$/"]
+  },
+  "github-actions": {
+    "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+    "pinDigests": true
+  },
+  "pre-commit": {
+    "description": "Off by default. A manager that is off silently is a set of pins nobody is watching.",
+    "enabled": true,
+    "managerFilePatterns": ["/^\\.pre-commit-config\\.yaml$/"]
+  },
+  "mise": {
+    "managerFilePatterns": ["/^\\.mise\\.toml$/"]
+  },
+  "flux": {
+    "managerFilePatterns": ["/^(platform|clusters)/.+\\.ya?ml$/"]
+  },
+  "helm-values": {
+    "managerFilePatterns": ["/^platform/.+/release\\.ya?ml$/"]
+  },
+  "kubernetes": {
+    "description": "Needs explicit patterns: there is no filename convention it can infer. This is what proposes the image tag bump in deploy/ after release.yml publishes a new version.",
+    "managerFilePatterns": ["/^deploy/.+\\.ya?ml$/"]
+  },
+
+  "packageRules": [
+    {
+      "description": "Non-major updates arrive grouped, one change per ecosystem per week, so the number of things to review stays small (FR-009).",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchManagers": ["pep621", "npm"],
+      "groupName": "language packages"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchManagers": ["dockerfile", "kubernetes"],
+      "groupName": "container images"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchManagers": ["github-actions", "pre-commit", "mise"],
+      "groupName": "tooling"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": ["flux", "helm-values"],
+      "groupName": "platform charts"
+    },
+    {
+      "description": "A major is a decision, not a bump: it arrives on its own and stays out of the weekly window.",
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "The images this repository publishes are updated by release.yml and the VERSION file, not by an updater proposing a bump to itself.",
+      "matchPackageNames": ["/^ghcr\\.io/randaguiac20/flagpole-/"],
+      "enabled": false
+    }
+  ]
+}

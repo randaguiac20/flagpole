@@ -13,7 +13,7 @@ cd "$ROOT"
 [[ -f .env ]] && source .env
 CLUSTER="${FLAGPOLE_CLUSTER_NAME:-flagpole}"
 REGISTRY="${FLAGPOLE_IMAGE_REGISTRY:-ghcr.io/randaguiac20}"
-TAG="${FLAGPOLE_IMAGE_TAG:-0.1.0}"
+TAG="${FLAGPOLE_IMAGE_TAG:-$(cat "$ROOT/VERSION")}"
 
 say() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 die() { printf '\033[31m%s\033[0m\n' "$1" >&2; exit 1; }

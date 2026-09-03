@@ -50,14 +50,22 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: ["ALL"]}
-            # Not read-only: PostgreSQL writes its socket and lock files outside the data volume.
-            # Named here rather than left to a default, so the exception is a decision on the record.
-            readOnlyRootFilesystem: false
+            # Read-only, like every other workload here. PostgreSQL writes outside its data
+            # volume in exactly two places — the unix socket and lock file in /var/run/postgresql,
+            # and scratch files in /tmp — so both are emptyDir rather than the image's filesystem.
+            # Verified by running the same image with --read-only before this was changed
+            # (trivy KSV-0014).
+            readOnlyRootFilesystem: true
           resources:
             requests: {cpu: 100m, memory: 128Mi}
             limits: {memory: 512Mi}
           volumeMounts:
             - {name: data, mountPath: /var/lib/postgresql/data}
+            - {name: run, mountPath: /var/run/postgresql}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: run, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}
   volumeClaimTemplates:
     - metadata: {name: data}
       spec:

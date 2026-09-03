@@ -171,9 +171,22 @@ that a pin has a way of moving that a person reviews. A manager that is off sile
 nobody is watching.
 
 **Key names**: the configuration key is **`managerFilePatterns`**, not `fileMatch` (renamed in
-Renovate 41; `fileMatch` is now rejected by the validator, not merely ignored) — already recorded as
-gotcha #7 during discovery, and the reason `renovate-config-validator` runs in CI rather than being
-trusted to be right.
+Renovate 41) — recorded as gotcha #7 during discovery. Checked while implementing T019, and the
+discovery note was half right: `renovate-config-validator` does **not** refuse `fileMatch`. It prints
+`WARN: Config migration necessary`, shows the migration diff, and **exits 0**:
+
+```
+$ npx --yes --package renovate -- renovate-config-validator renovate-with-filematch.json
+ WARN: Config migration necessary
+ WARN: Config migration diff:
+ INFO: Config validated successfully against 1 file(s)
+$ echo $?
+0
+```
+
+So a deprecated key would pass CI silently. Two consequences: `scripts/check-ci-contract.sh` asserts
+the key is absent, and the lint job treats "migration necessary" in the validator's output as a
+failure rather than reading the exit status.
 
 **Grouping**: non-major updates for each ecosystem are grouped into one change per week
 (`schedule: ["before 6am on monday"]`, `prConcurrentLimit: 3`) so the repository proposes a handful

@@ -1,0 +1,95 @@
+# Publishing. Spec: 006-ci-and-security FR-004, FR-005, FR-005a, FR-006, FR-007.
+#
+# This is where continuous integration stops. Nothing here touches the cluster: Flux owns that, and
+# the path from here is publish -> Renovate sees the newer tag -> it proposes the bump in deploy/ ->
+# someone merges it -> Flux reconciles. A deploy step would need a credential this architecture
+# exists to avoid.
+name: release
+
+on:
+  push:
+    branches: [main]
+    # A documentation change must not build (FR-004). Expressed in the trigger, where it can be
+    # read, rather than as a condition on every job.
+    paths-ignore:
+      - 'docs/**'
+      - 'specs/**'
+      - '**/*.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false     # never cancel a half-finished publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write           # the only write scope in this repository, on the only job that needs it
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {service: flagpole-api, context: backend}
+          - {service: flagpole-consumer, context: consumer}
+          - {service: flagpole-web, context: frontend}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The version is read, never written. Nothing in this repository increments it; a person does,
+      # in the change that earns it (FR-005a).
+      - id: version
+        run: echo "value=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publishing a version that already exists would silently move a tag other people have pulled.
+      # Fail instead, naming the file to change.
+      - name: refuse to republish an existing version
+        run: |
+          image="ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}"
+          if docker manifest inspect "$image:${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
+            echo "::error file=VERSION::$image:${{ steps.version.outputs.value }} already exists."
+            echo "Bump VERSION in the change that earns it, then push again." >&2
+            exit 1
+          fi
+          echo "$image:${{ steps.version.outputs.value }} is not published yet"
+
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}
+          # Two tags on one digest: the version a person reads in deploy/, and the commit that
+          # answers "where did this image come from" (SC-004).
+          tags: |
+            type=raw,value=${{ steps.version.outputs.value }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.value }}
+
+      - uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: what was published
+        run: |
+          {
+            echo "### ${{ matrix.service }}"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

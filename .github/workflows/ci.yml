@@ -1,0 +1,131 @@
+# Every change, before anyone looks at it. Spec: 006-ci-and-security FR-001, FR-002, FR-003, FR-007.
+#
+# No path filter on purpose: a change to a rule, a hook or a spec should still see the lint and the
+# hook tests run. The publishing workflow is the one that skips documentation (FR-004).
+#
+# Every `uses:` names a commit, with the tag in the comment. A tag can be repointed; a commit cannot.
+# The same argument feature 005 made for image digests, applied to the other kind of dependency this
+# repository consumes.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only, declared here rather than left to a repository setting, so the scope is visible in the
+# file. Nothing in this workflow publishes, and nothing may reach a secret (FR-007).
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      # The same hooks a commit runs locally, over every file rather than the staged ones. Running
+      # pre-commit here instead of restating ruff and shellcheck is what stops the two from
+      # drifting — a CI lint that is stricter than the hook is a lint nobody can satisfy locally.
+      - name: pre-commit (ruff, shellcheck, gitleaks, yaml, json, SOPS)
+        run: pre-commit run --all-files --show-diff-on-failure
+      - name: actionlint
+        run: actionlint
+      - name: every base image is named by digest
+        run: scripts/check-image-pins.sh
+      - name: the workflows match their contract
+        run: scripts/check-ci-contract.sh
+      # The validator exits 0 on a deprecated key — it migrates it and warns. Reading the exit
+      # status alone would let `fileMatch` through silently, so read what it said.
+      - name: renovate.json is valid and needs no migration
+        run: |
+          out=$(npx --yes --package renovate -- renovate-config-validator renovate.json 2>&1)
+          echo "$out"
+          if grep -qi 'migration necessary\|ERROR' <<< "$out"; then
+            echo "::error file=renovate.json::the configuration uses a deprecated key"
+            exit 1
+          fi
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with: {enable-cache: true}
+      # --frozen: the lockfile is honoured, not refreshed. A resolution that happens here and not on
+      # the developer's machine is a different test run wearing the same commit.
+      - run: uv sync --frozen
+        working-directory: backend
+      - run: uv run pytest -q
+        working-directory: backend
+
+  test-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with: {enable-cache: true}
+      - run: uv sync --frozen
+        working-directory: consumer
+      - run: uv run pytest -q
+        working-directory: consumer
+
+  test-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with: {enable-cache: true}
+      - run: uv sync --frozen
+        working-directory: mcp/flagpole-mcp
+      - run: uv run pytest -q
+        working-directory: mcp/flagpole-mcp
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'          # the version frontend/Dockerfile builds with
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      # The generated types must still match the API contract in specs/001-flagpole-api/.
+      - run: npm run api:types:check
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+
+  test-hooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The guards that keep this repository honest are themselves checked. A hook nobody tests is a
+      # hook that fails open the first time it matters.
+      - run: make test-hooks
+
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {fetch-depth: 0}        # gitleaks reads the history, not just the tip
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with: {enable-cache: true}
+      # The same command as `make scan` locally, with the same tool versions from .mise.toml —
+      # which is what makes "the same findings for the same commit" true rather than hoped (FR-013).
+      - run: make scan
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scanner-output
+          path: .scan/
+          retention-days: 7

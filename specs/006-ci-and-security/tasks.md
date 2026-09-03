@@ -10,17 +10,17 @@ deliberate breakages in `quickstart.md`; a workflow that has never failed has no
 
 ## Phase 1: Setup
 
-- [ ] T001 Write `scripts/check-ci-contract.sh` reading `contracts/ci-contract.json` — triggers, `permissions`, jobs, action SHA pins, forbidden patterns, `VERSION` shape, Renovate managers, findings columns. Run it now, against a repository with no workflows, and show it failing
-- [ ] T002 [P] Install `actionlint` (`mise use -g actionlint`) and add it, with `renovate-config-validator` via `npx`, to the tool list in `docs/BLUEPRINT.md`
-- [ ] T003 [P] Create `VERSION` holding `0.1.0`; make `scripts/build.sh` and `.env.example` read it instead of hardcoding `FLAGPOLE_IMAGE_TAG` (FR-005a — nothing writes this file)
-- [ ] T004 [P] Create `docs/security-findings.md` with the seven columns from `data-model.md`, the failing thresholds from research E6, and the rule that a row is never deleted
+- [X] T001 Write `scripts/check-ci-contract.sh` reading `contracts/ci-contract.json` — triggers, `permissions`, jobs, action SHA pins, forbidden patterns, `VERSION` shape, Renovate managers, findings columns. Run it now, against a repository with no workflows, and show it failing
+- [X] T002 [P] Install `actionlint` (`mise use -g actionlint`) and add it, with `renovate-config-validator` via `npx`, to the tool list in `docs/BLUEPRINT.md`
+- [X] T003 [P] Create `VERSION` holding `0.1.0`; make `scripts/build.sh` and `.env.example` read it instead of hardcoding `FLAGPOLE_IMAGE_TAG` (FR-005a — nothing writes this file)
+- [X] T004 [P] Create `docs/security-findings.md` with the seven columns from `data-model.md`, the failing thresholds from research E6, and the rule that a row is never deleted
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T005 Implement `scripts/scan.sh`: all eight scanners, **no early exit**, a summary table at the end, and a missing tool treated as a failure rather than a skip (FR-010, FR-011)
-- [ ] T006 Prove `scan.sh` bites: plant a credential in a Python file, run `make scan`, show the gitleaks finding and the non-zero exit; then rename a scanner off `PATH` and show FR-011 — "not installed" fails, it does not pass quietly. Remove both
-- [ ] T007 Run `make scan` for real and record **every** finding at or above its threshold in `docs/security-findings.md` with a decision, a reason and today's date. Fix what is fixable rather than accepting it
-- [ ] T008 Make `scan.sh` consult `docs/security-findings.md`: a recorded finding no longer fails the run, an unrecorded one does. This is what makes the document load-bearing instead of decorative (FR-012)
+- [X] T005 Implement `scripts/scan.sh`: all eight scanners, **no early exit**, a summary table at the end, and a missing tool treated as a failure rather than a skip (FR-010, FR-011)
+- [X] T006 Prove `scan.sh` bites: plant a credential in a Python file, run `make scan`, show the gitleaks finding and the non-zero exit; then rename a scanner off `PATH` and show FR-011 — "not installed" fails, it does not pass quietly. Remove both
+- [X] T007 Run `make scan` for real and record **every** finding at or above its threshold in `docs/security-findings.md` with a decision, a reason and today's date. Fix what is fixable rather than accepting it
+- [X] T008 Make `scan.sh` consult `docs/security-findings.md`: a recorded finding no longer fails the run, an unrecorded one does. This is what makes the document load-bearing instead of decorative (FR-012)
 
 ## Phase 3: User Story 1 — every change is checked before anyone looks at it (P1)
 
@@ -29,15 +29,15 @@ and the failure is visible on the change itself.
 
 **Independent test**: open a change that breaks a test; the check fails and names it.
 
-- [ ] T009 [US1] Write `.github/workflows/ci.yml`: triggers `pull_request` and `push` to `main`, `permissions: {contents: read}`, a concurrency group that cancels superseded runs, every `uses:` pinned to the SHA recorded in research E2 with its tag in a comment
-- [ ] T010 [P] [US1] Add jobs `test-backend`, `test-consumer`, `test-mcp` — `astral-sh/setup-uv`, `uv sync --frozen`, `uv run pytest`; the lockfile is honoured, not refreshed
-- [ ] T011 [P] [US1] Add job `test-frontend` — `actions/setup-node` with the Node version the image uses, `npm ci`, `npm test`
-- [ ] T012 [P] [US1] Add job `lint` — `ruff check`, `ruff format --check`, `shellcheck`, `actionlint`, `scripts/check-image-pins.sh`, `scripts/check-ci-contract.sh`
-- [ ] T013 [P] [US1] Add job `test-hooks` — `make test-hooks`, so the mechanisms that guard this repository are themselves checked (FR-001)
-- [ ] T014 [US1] Add job `scan` — `make scan`, the same command as locally, so the local and automated runs cannot drift (FR-013)
-- [ ] T015 [US1] Run `actionlint .github/workflows/ci.yml` and `scripts/check-ci-contract.sh`; both must pass. Then flip `pull_request` to `pull_request_target` and show the contract check failing and naming FR-007, and put it back
+- [X] T009 [US1] Write `.github/workflows/ci.yml`: triggers `pull_request` and `push` to `main`, `permissions: {contents: read}`, a concurrency group that cancels superseded runs, every `uses:` pinned to the SHA recorded in research E2 with its tag in a comment
+- [X] T010 [P] [US1] Add jobs `test-backend`, `test-consumer`, `test-mcp` — `astral-sh/setup-uv`, `uv sync --frozen`, `uv run pytest`; the lockfile is honoured, not refreshed
+- [X] T011 [P] [US1] Add job `test-frontend` — `actions/setup-node` with the Node version the image uses, `npm ci`, `npm test`
+- [X] T012 [P] [US1] Add job `lint` — `ruff check`, `ruff format --check`, `shellcheck`, `actionlint`, `scripts/check-image-pins.sh`, `scripts/check-ci-contract.sh`
+- [X] T013 [P] [US1] Add job `test-hooks` — `make test-hooks`, so the mechanisms that guard this repository are themselves checked (FR-001)
+- [X] T014 [US1] Add job `scan` — `make scan`, the same command as locally, so the local and automated runs cannot drift (FR-013)
+- [X] T015 [US1] Run `actionlint .github/workflows/ci.yml` and `scripts/check-ci-contract.sh`; both must pass. Then flip `pull_request` to `pull_request_target` and show the contract check failing and naming FR-007, and put it back
 - [ ] T016 [US1] Push the branch, open the change, and show every job green (`gh pr checks --watch`)
-- [ ] T016a [US1] Prove FR-006: show `scripts/check-ci-contract.sh` refusing a workflow that names `kubectl` or a kubeconfig secret — continuous integration stops at a published image and never writes to the cluster
+- [X] T016a [US1] Prove FR-006: show `scripts/check-ci-contract.sh` refusing a workflow that names `kubectl` or a kubeconfig secret — continuous integration stops at a published image and never writes to the cluster
 - [ ] T016b [US1] Measure SC-002: `gh run list --json databaseId,createdAt,updatedAt` for the last run, and record the wall-clock time. Under 10 minutes, or split a job — do not raise the budget
 - [ ] T017 [US1] Prove SC-001: break one backend assertion, push, show `test-backend` red on the change, revert
 
@@ -48,10 +48,10 @@ a merged proposal reaches the cluster with no manual step.
 
 **Independent test**: merge one update proposal; `flux reconcile` and `verify-cluster.sh` still pass.
 
-- [ ] T018 [US2] Write `renovate.json`: `config:recommended`, the eight managers from research E8, `pinDigests: true`, grouping by ecosystem, `prConcurrentLimit: 3`, `automerge: false` everywhere. Use `managerFilePatterns` — `fileMatch` is rejected by the validator (gotcha #7)
-- [ ] T019 [US2] Validate it: `npx --yes --package renovate -- renovate-config-validator renovate.json`, and show the output. Then plant a `fileMatch` key and show the validator refusing it, so the CI step is known to bite
-- [ ] T020 [US2] Write `.github/workflows/release.yml`: `push` to `main` with `paths-ignore` for `docs/**`, `specs/**` and `**/*.md`; `permissions: {contents: read, packages: write}` on the `publish` job alone; build and push the three images tagged with `VERSION` and `sha-<short commit>`, with OCI revision/source labels
-- [ ] T021 [US2] Add the republish guard: before building, query the registry for the tag in `VERSION` and fail with "bump VERSION" rather than moving a tag someone may have pulled (research E7)
+- [X] T018 [US2] Write `renovate.json`: `config:recommended`, the eight managers from research E8, `pinDigests: true`, grouping by ecosystem, `prConcurrentLimit: 3`, `automerge: false` everywhere. Use `managerFilePatterns` — `fileMatch` is rejected by the validator (gotcha #7)
+- [X] T019 [US2] Validate it: `npx --yes --package renovate -- renovate-config-validator renovate.json`, and show the output. Then plant a `fileMatch` key and show the validator refusing it, so the CI step is known to bite
+- [X] T020 [US2] Write `.github/workflows/release.yml`: `push` to `main` with `paths-ignore` for `docs/**`, `specs/**` and `**/*.md`; `permissions: {contents: read, packages: write}` on the `publish` job alone; build and push the three images tagged with `VERSION` and `sha-<short commit>`, with OCI revision/source labels
+- [X] T021 [US2] Add the republish guard: before building, query the registry for the tag in `VERSION` and fail with "bump VERSION" rather than moving a tag someone may have pulled (research E7)
 - [ ] T022 [US2] Prove FR-004: push a documentation-only commit and show `gh run list` — a `ci` run and no `release` run
 - [ ] T023 [US2] Merge to `main`, watch `release.yml`, and show both tags on `flagpole-api` in the registry plus the `org.opencontainers.image.revision` label matching the commit (SC-004)
 - [ ] T024 [US2] Write `docs/renovate.md`: what each manager covers, why `pre-commit` and `kubernetes` must be enabled explicitly, how the grouping is chosen, and what stays pinned by hand and why
