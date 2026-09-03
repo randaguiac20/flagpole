@@ -421,12 +421,42 @@ session without disabling the guard, which would be the wrong lesson. Run it you
 ! kubectl -n traefik scale deploy/traefik --replicas=3   # then watch Flux put it back
 ```
 
-And to open the hosts in your own browser without a certificate warning, trust the cluster's CA. This
-needs `sudo`, so it is printed and not run:
+And to open the hosts in your own browser without a certificate warning, trust the cluster's CA.
+Export it once:
 
 ```
 kubectl -n cert-manager get secret flagpole-ca -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/flagpole-ca.crt
+```
+
+There is no single trust store on Linux, and this is where the first attempt here stopped one step
+short. The **system** store serves `curl`, `openssl` and anything using OpenSSL. It needs `sudo`, so
+it is printed and not run:
+
+```
 sudo cp /tmp/flagpole-ca.crt /usr/local/share/ca-certificates/flagpole-ca.crt && sudo update-ca-certificates
+```
+
+Chrome and Chromium do **not** read it. They use NSS, a per-user database, and this step needs no
+`sudo`:
+
+```
+sudo apt-get install -y libnss3-tools     # once; the certutil binary
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n flagpole-ca -i /tmp/flagpole-ca.crt
+certutil -d sql:$HOME/.pki/nssdb -L | grep flagpole      # flagpole-ca  C,,
+```
+
+Firefox reads neither: it keeps its own store per profile (Settings → Privacy & Security → View
+Certificates → Authorities → Import), and a Firefox installed as a snap or flatpak cannot see
+`/tmp` at all — copy the file into your home directory first.
+
+The trap after all of that is a browser you never closed. Chrome reads the NSS database **at
+startup**, so a window that was already open when you ran `certutil` keeps refusing the host and
+every check you run from a fresh process says the certificate is fine. Quit it completely — every
+window, and confirm no `chrome` process survives — then reopen. Verify from the same browser binary
+rather than from `curl`, which answers for the system store only:
+
+```
+google-chrome --headless=new --dump-dom https://dev.flagpole.localhost >/dev/null && echo OK
 ```
 
 `.mcp.json` now passes `--ignore-https-errors` to the Playwright server so the `ui-tester` agent can
