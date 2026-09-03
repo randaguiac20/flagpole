@@ -1,0 +1,19 @@
+# CLAUDE.local.md — personal, per-project, never committed
+
+Copy to `CLAUDE.local.md` and edit. It is gitignored: put here what is true for *your* machine and
+would be wrong for a teammate.
+
+- Local URLs or ports that differ from `.env.example`.
+- Test accounts and sample data you use by habit.
+- A reminder of where your keys live — the path, never the key.
+
+<!--
+Two things worth knowing:
+
+1. It is loaded from the directory Claude Code starts in, so a git worktree or a subdirectory session
+   will not see the one at the repository root. `@~/path/to/file` in CLAUDE.md is the alternative
+   when you want something to follow you everywhere.
+2. Anything a teammate needs is not personal. It belongs in CLAUDE.md, a rule, or a skill — where it
+   is reviewed. A convention that lives only in someone's local file is a convention nobody else can
+   follow.
+-->

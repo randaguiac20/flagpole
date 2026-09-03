@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "<plugin-name>",
+  "displayName": "<Plugin name>",
+  "version": "0.1.0",
+  "description": "<What it packages, in one sentence.>",
+  "author": { "name": "<owner>", "url": "https://github.com/<owner>" },
+  "repository": "https://github.com/<owner>/<repo>",
+  "license": "MIT",
+  "defaultEnabled": true
+}

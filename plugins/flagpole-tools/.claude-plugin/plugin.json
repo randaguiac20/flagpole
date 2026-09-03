@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "flagpole-tools",
+  "displayName": "Flagpole tools",
+  "version": "0.1.0",
+  "description": "The three procedures for running Flagpole locally — deploy to k3d, run every scanner, run the end-to-end suite — and the two agents they delegate to.",
+  "author": {
+    "name": "randaguiac20",
+    "url": "https://github.com/randaguiac20"
+  },
+  "repository": "https://github.com/randaguiac20/flagpole",
+  "license": "MIT",
+  "keywords": ["flagpole", "gitops", "flux", "k3d", "security-scanning", "playwright"],
+  "defaultEnabled": true
+}

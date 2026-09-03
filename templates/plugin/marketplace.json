@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "<marketplace-name>",
+  "description": "<Who serves these plugins.>",
+  "owner": { "name": "<owner>", "url": "https://github.com/<owner>" },
+  "plugins": [
+    {
+      "name": "<plugin-name>",
+      "source": "./plugins/<plugin-name>",
+      "description": "<one sentence>",
+      "defaultEnabled": true
+    }
+  ]
+}

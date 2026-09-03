@@ -40,3 +40,14 @@ For every mechanism: the misuse, why it hurts, and what Flagpole does instead. P
 | A release tool that infers the version | `semantic-release` and friends add a changelog, a tagging step and a bot commit so that a number can be derived from how a commit message was phrased. A person typing one line into `VERSION` is not the hard part of releasing. | Releases frequent enough that typing the number is the bottleneck. |
 | `pull_request_target` | It runs the base workflow, with write access, against a fork's code. That is not a trade-off, it is the documented way to hand a stranger your credentials. | Never. |
 | A deploy job with a kubeconfig | The credential this entire architecture exists to avoid. Publishing an image is where continuous integration stops; Flux takes it from there. | A cluster Flux cannot reach. |
+
+## Phase 6 — plugin, templates, reproduction
+
+| Not built | Why | The signal that would change it |
+|---|---|---|
+| A second plugin | One is enough to show the mechanism, and the first one is already hard to justify for a single repository. | A genuinely separable set of components with a different audience. |
+| Hooks inside the plugin | A plugin can be disabled with one command. Enforcement that can be switched off is a suggestion, so both guards stayed in `.claude/settings.json` next to `permissions.deny`. | Never — if a guard must travel between repositories, it travels as a *copied* settings block, not as something optional. |
+| Publishing the plugin to a remote marketplace | The marketplace is this repository. Publishing adds a release process for an artefact with one consumer, which is this repository. | A second repository that needs these components. |
+| Keeping the components in `.claude/` **and** in the plugin | Two sources of truth. The first edit to one makes the other a lie, and nothing would catch it. `scripts/check-blueprint.sh` asserts the `.claude/` copies are gone. | Never. |
+| Templates generated from the live files | A generator would keep them in sync and lose the only thing that makes them worth having — the comment saying *when not to* reach for the mechanism. | Templates drifting far enough that someone copies a broken one. |
+| Re-running the whole rebuild end to end | It needs an empty machine, a new GitHub repository, `flux bootstrap` and a cluster. Claiming to have re-run it would be the kind of unverified statement this repository exists to avoid. | Someone actually doing it — the blueprint names the three steps that were not re-run. |

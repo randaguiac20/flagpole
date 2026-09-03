@@ -14,6 +14,8 @@ Feature-flag service built as a **Claude Code + Spec-Driven Development learning
 | `deploy/` | Kustomize `base/`, `overlays/{dev,prod}/`, `platform/` (Traefik, cert-manager, Dex, PostgreSQL). SOPS-encrypted Secrets. |
 | `clusters/local/` | Flux entry points: `flux-system/`, `platform.yaml`, `flagpole-dev.yaml`, `flagpole-prod.yaml` |
 | `.claude/` | rules, agents, skills, hooks, settings — each explained in `docs/claude-code/` and justified in `docs/decisions/` |
+| `plugins/flagpole-tools/` `.claude-plugin/` | the one packaged plugin and the marketplace that serves it, both from this repository |
+| `templates/` | copy-ready, de-Flagpoled versions of every mechanism, for starting a repository like this one |
 | `docs/` | `walkthrough.md`, `gotchas.md`, `anti-patterns.md`, `ports.md`, `secrets-sops.md`, `renovate.md`, `BLUEPRINT.md` |
 
 ## Commands
@@ -48,7 +50,8 @@ Services `flagpole-api`, `flagpole-consumer`, `flagpole-web`; MCP `flagpole-mcp`
 ## Claude Code map (details in docs/claude-code/)
 
 - Always-on: this file + `.claude/rules/workflow.md`. Path-scoped rules load for Python, frontend and manifests.
-- On demand: skills `/deploy-local`, `/security-scan`, `/e2e`, `/add-flag-field`, `api-conventions`; Spec Kit's `/speckit-*`.
-- Isolated: agents `code-reviewer`, `security-auditor`, `deploy-verifier`, `ui-tester`.
+- On demand: skills `/add-flag-field`, `api-conventions`; Spec Kit's `/speckit-*`; and from the plugin `/flagpole-tools:deploy-local`, `:security-scan`, `:e2e`.
+- Isolated: agents `code-reviewer`, `ui-tester`; `flagpole-tools:security-auditor`, `flagpole-tools:deploy-verifier`.
+- Packaged: plugin `flagpole-tools` in `plugins/`, served by the marketplace at `.claude-plugin/marketplace.json` and enabled in `.claude/settings.json`.
 - Enforced: `permissions.deny` for plain blocks; hooks for content-dependent guards, formatting, the Stop test gate and notifications.
 - External: MCP `playwright` (browser) and `flagpole-mcp` (flag state) in `.mcp.json`.

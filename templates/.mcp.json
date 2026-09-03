@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "<external-tool>": {
+      "command": "npx",
+      "args": ["-y", "<package>", "--<flag>"],
+      "env": {}
+    },
+    "<your-own-server>": {
+      "command": "uv",
+      "args": ["run", "--directory", "${CLAUDE_PROJECT_DIR}/<path>", "<entrypoint>"],
+      "env": { "<VAR>": "${<VAR>}" }
+    }
+  }
+}

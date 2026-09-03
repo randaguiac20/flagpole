@@ -40,6 +40,11 @@ jobs:
         run: scripts/check-image-pins.sh
       - name: the workflows match their contract
         run: scripts/check-ci-contract.sh
+      # --repo-only: the machine checks (is docker here, does the pinned toolchain resolve) are about
+      # a developer's laptop, and the `claude` CLI is not installable on a runner. What CI can check
+      # is that the rebuild document still describes this repository.
+      - name: the blueprint still describes this repository
+        run: scripts/check-blueprint.sh --repo-only
       # The validator exits 0 on a deprecated key — it migrates it and warns. Reading the exit
       # status alone would let `fileMatch` through silently, so read what it said.
       # `--package renovate@44.59.3`, never a bare `--package renovate`: the latter fetches and runs

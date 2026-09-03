@@ -10,7 +10,7 @@ Frontmatter: `name`, `description` (when to delegate), `tools` / `disallowedTool
 
 ## When / how far
 
-Trigger: a side task reads many files or produces output you will not reference again; parallel independent tasks; a reviewer that must not edit; a restricted tool set. Not for ordinary sequential edits the user wants to watch. This repo: 3–4 agents, explicit read-only `tools`, one-paragraph prompts.
+Trigger: a side task reads many files or produces output you will not reference again; parallel independent tasks; a reviewer that must not edit; a restricted tool set. Not for ordinary sequential edits the user wants to watch. This repo: 4 agents — 2 in `.claude/`, 2 moved into the `flagpole-tools` plugin in Phase 6 alongside the skills that call them — explicit read-only `tools`, one-paragraph prompts.
 
 Skill vs subagent: a skill is content loaded into *some* context (yours or a fork); a subagent is a worker with its own context. They combine: `skills:` preloads into an agent; `context: fork` runs a skill in a subagent. `SubagentStart`/`SubagentStop` hooks fire with `agent_type` = the agent's `name`.
 

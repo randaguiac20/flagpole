@@ -600,3 +600,91 @@ touch: /usr/local/probe: Read-only file system
 $ scripts/verify-cluster.sh
 43 passed, 0 failed
 ```
+
+## Phase 6 — plugin, templates, reproduction (2026-09-03)
+
+### The plugin, moved rather than copied
+
+Three procedure skills and the two agents they call became `plugins/flagpole-tools/`, served by a
+marketplace this repository ships itself:
+
+```
+$ claude plugin marketplace add ./            # a bare `.` is rejected — gotcha #44
+✔ Successfully added marketplace: flagpole-local (declared in user settings)
+
+$ claude plugin install flagpole-tools@flagpole-local
+✔ Successfully installed plugin: flagpole-tools@flagpole-local (scope: user)
+
+$ claude plugin details flagpole-tools
+Flagpole tools (flagpole-tools) 0.1.0
+Component inventory
+  Skills (3)  deploy-local, e2e, security-scan
+  Agents (2)  security-auditor, deploy-verifier
+  Hooks (0)   MCP servers (0)   LSP servers (0)
+Projected token cost
+  Always-on:   ~510 tok   added to every session
+```
+
+That last number is the honest argument against the whole exercise for a single repository, and it is
+why `docs/decisions/plugin-flagpole-tools.md` names the learning goal as the trigger instead of
+inventing a need. Everything is now `/flagpole-tools:deploy-local` and
+`Agent(flagpole-tools:deploy-verifier)`, and every cross-reference had to move with it.
+
+**Every hook stayed in `.claude/`.** A plugin can be disabled with one command, and a guard that can
+be switched off is not a guard.
+
+### The blueprint, checked against the repository
+
+`scripts/check-blueprint.sh` asserts `docs/BLUEPRINT.md` against what is actually here — the tools it
+names, the `make` targets it calls, the scripts and paths it promises, the spec artefacts of every
+feature it walks through, and that the plugin was moved rather than copied.
+
+```
+95 passed, 0 failed
+```
+
+Proved by breaking it three ways:
+
+```
+# a target and a script the blueprint names but nothing defines
+  FAIL make nonexistent-target is called by the blueprint but not defined in the Makefile
+  FAIL scripts/not-a-script.sh is named by the blueprint but is missing or not executable
+# a component left behind in .claude/ after the move
+  FAIL .claude/skills/e2e still exists — the plugin was copied, not moved
+```
+
+It also prints what it cannot check — creating the GitHub repository, `flux bootstrap`, installing the
+Renovate app — so the parts taken on trust are named rather than implied.
+
+### The rebuild, as far as it can honestly be run
+
+In an empty directory, the runnable prefix of the blueprint:
+
+```
+$ git init -b main -q .
+$ cp templates/PROMPT.md ./PROMPT.md                    # 251 lines, fully de-Flagpoled
+$ specify init --here --force --non-interactive --integration claude --script sh
+  produced: .specify/{memory,scripts,templates,workflows,integrations}, .claude/skills
+  speckit skills installed: 10
+```
+
+Then the templates, into that same empty repository:
+
+```
+  ok  .claude/settings.json                     JSON parses
+  ok  .mcp.json                                 JSON parses
+  ok  .claude/rules/path-scoped.md          ->  description, globs, alwaysApply
+  ok  .claude/agents/reviewer.md            ->  name, description, tools, model
+  ok  .claude/skills/my-procedure/SKILL.md  ->  name, description, disable-model-invocation, …
+
+$ echo '<a Write event carrying the forbidden content>' | .claude/hooks/content-guard.sh
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny", …}}
+
+$ echo '<a Write event carrying harmless content>' | .claude/hooks/content-guard.sh
+  allowed (exit 0)
+```
+
+The first template hook did **not** parse when it was written — `case "$rel" in <protected-dir>/*)`
+is a redirection, not a pattern (gotcha #47). A template nobody runs is a template that ships broken,
+which is the same lesson as everything else in this repository: a check that has never failed has not
+been tested.

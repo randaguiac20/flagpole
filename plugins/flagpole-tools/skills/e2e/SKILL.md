@@ -19,4 +19,6 @@ Preflight (show the output):
 4. Do not modify tests to make them pass. A failing scenario means either the code or the spec is
    wrong; say which you believe and why.
 
-Cluster runs (`https://dev.flagpole.localhost`) arrive with feature 005; this skill is local-only until then.
+Cluster runs: `make e2e TARGET=cluster` points the suite at `https://dev.flagpole.localhost`. That
+needs the cluster's self-signed CA trusted first (`docs/walkthrough.md` prints the command; it takes
+sudo, so this skill will not run it).

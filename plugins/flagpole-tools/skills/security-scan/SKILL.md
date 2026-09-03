@@ -3,12 +3,12 @@ name: security-scan
 description: Run every scanner (pip-audit, npm audit, osv-scanner, trivy image+config, hadolint, gitleaks, bandit, semgrep) via make scan, then triage with the security-auditor agent using the fixed template below. Slow and noisy, so only the user invokes it.
 disable-model-invocation: true
 argument-hint: "[tool-name]"
-allowed-tools: Bash(make scan *), Bash(scripts/scan.sh *), Agent(security-auditor)
+allowed-tools: Bash(make scan *), Bash(scripts/scan.sh *), Agent(flagpole-tools:security-auditor)
 ---
 
 Run the full scanner set (or only `$0` if given) and produce the triage the maintainer records in `docs/security-findings.md`.
 
-1. Spawn the `security-auditor` agent with: "Run `make scan$0` and triage every finding; compare with docs/security-findings.md." Wait for its report.
+1. Spawn the `flagpole-tools:security-auditor` agent with: "Run `make scan$0` and triage every finding; compare with docs/security-findings.md." Wait for its report.
 2. Present the report using exactly this template, one row per finding, High/Critical first:
 
    | Severity | Tool | Location | Finding | Decision (fix / accept / false-positive) | Rationale | Owner |

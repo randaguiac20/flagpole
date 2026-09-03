@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "flagpole-local",
+  "description": "The one plugin this repository ships, served from the repository itself.",
+  "owner": {
+    "name": "randaguiac20",
+    "url": "https://github.com/randaguiac20"
+  },
+  "plugins": [
+    {
+      "name": "flagpole-tools",
+      "source": "./plugins/flagpole-tools",
+      "description": "Deploy Flagpole to the local cluster, scan it, and drive its end-to-end suite.",
+      "category": "workflow",
+      "defaultEnabled": true
+    }
+  ]
+}

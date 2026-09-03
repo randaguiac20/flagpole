@@ -10,23 +10,27 @@ Frontmatter we use: `name`, `description`, `argument-hint`, `disable-model-invoc
 
 ## When / how far
 
-Trigger: you keep typing the same prompt, or pasted the same playbook three times, or Claude needs reference material sometimes. Not for always-on rules, single commands, enforcement, or re-implementing what Spec Kit provides. This repo: 5 of ours + 10 from Spec Kit. `disable-model-invocation: true` on skills with side effects.
+Trigger: you keep typing the same prompt, or pasted the same playbook three times, or Claude needs reference material sometimes. Not for always-on rules, single commands, enforcement, or re-implementing what Spec Kit provides. This repo: 2 in `.claude/`, 3 in the plugin, 10 from Spec Kit. `disable-model-invocation: true` on skills with side effects.
 
 ## Our implementation
 
-| Skill | Kind | Invocation | Tools pre-approved |
-|---|---|---|---|
-| `/deploy-local` | procedure with side effects | user only | make, scripts, k3d, flux, kubectl get, `Agent(deploy-verifier)` |
-| `/security-scan` | procedure + fixed triage template | user only | make scan, `Agent(security-auditor)` |
-| `/add-flag-field` | checklist | user or Claude | none needed |
-| `/e2e` | procedure | user or Claude | make e2e, ports, Read |
-| `api-conventions` | reference | Claude only (`user-invocable: false`) | — |
+| Skill | Where it lives | Kind | Invocation | Tools pre-approved |
+|---|---|---|---|---|
+| `/flagpole-tools:deploy-local` | plugin | procedure with side effects | user only | make, scripts, k3d, flux, kubectl get, `Agent(flagpole-tools:deploy-verifier)` |
+| `/flagpole-tools:security-scan` | plugin | procedure + fixed triage template | user only | make scan, `Agent(flagpole-tools:security-auditor)` |
+| `/flagpole-tools:e2e` | plugin | procedure | user or Claude | make e2e, ports, Read |
+| `/add-flag-field` | `.claude/` | checklist | user or Claude | none needed |
+| `api-conventions` | `.claude/` | reference | Claude only (`user-invocable: false`) | — |
+
+The three procedures moved into the plugin in Phase 6; the two that stayed are knowledge about *this*
+codebase rather than a procedure anyone else could run. See `docs/claude-code/plugins.md` for what the
+namespacing costs.
 
 Naming boundary with Spec Kit: Spec Kit owns the `speckit-` prefix (`/speckit-constitution` … `/speckit-taskstoissues`), installed by `specify init` and refreshed by it; we never edit those files. Our skills never start with `speckit-`.
 
 ## How to verify
 
-`/` menu shows user-invocable skills; `/context` lists loaded skill descriptions; invoking `/deploy-local` shows the injected `k3d cluster list` preflight. New top-level `.claude/skills/` directories need a restart (gotcha #6).
+`/` menu shows user-invocable skills; `/context` lists loaded skill descriptions; invoking `/flagpole-tools:deploy-local` shows the injected `k3d cluster list` preflight. New top-level `.claude/skills/` directories need a restart (gotcha #6).
 
 ## Common mistakes
 
