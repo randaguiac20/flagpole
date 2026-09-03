@@ -19,6 +19,13 @@ Preflight (show the output):
 4. Do not modify tests to make them pass. A failing scenario means either the code or the spec is
    wrong; say which you believe and why.
 
-Cluster runs: `make e2e TARGET=cluster` points the suite at `https://dev.flagpole.localhost`. That
-needs the cluster's self-signed CA trusted first (`docs/walkthrough.md` prints the command; it takes
-sudo, so this skill will not run it).
+This suite runs against **localhost only**. `frontend/playwright.config.ts` hardcodes
+`baseURL: http://localhost:${WEB_PORT}` and starts its own Dex, API and web server; `make e2e` takes
+`ARGS` and nothing else. There is no cluster target — an earlier version of this file advertised
+`make e2e TARGET=cluster`, which never existed (gotcha #50). Do not offer it.
+
+So a green run here says the code is right, not that the cluster is. The two can disagree whenever
+they obtain a component differently — feature 005 ran Dex 2.44.0 from a chart while
+`docker-compose.dev.yaml` ran 2.45.1, and this suite passed throughout while every cluster user got
+the wrong role. To check the deployed system, verify against it directly (`scripts/verify-cluster.sh`,
+or the `ui-tester` agent, whose Playwright MCP server can reach the cluster hosts).
