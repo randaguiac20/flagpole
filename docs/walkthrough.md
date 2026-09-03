@@ -548,3 +548,55 @@ $ echo $?
 
 So the lint job reads the validator's output rather than its exit status, and the contract check
 asserts the key is absent. Recorded as gotcha #35 and corrected in `research.md`.
+
+### What the review changed (2026-09-02)
+
+The `code-reviewer` agent returned **request-changes** on the 006 diff: 15 findings, 5 high. Three
+of them were the same shape as the bug the feature had already caught in itself, which is the part
+worth keeping:
+
+| Finding | Why it mattered |
+|---|---|
+| FR-011 enforced for trivy only | The other seven scanners piped `jq` over their output with stderr discarded. An errored scanner produced an empty `.ids` file and was recorded **clean** — fixed for one tool, left in place for seven |
+| `trivy fs` and `trivy config` never look inside an image | Adding `trivy image` over the three digest-pinned bases surfaced **28 HIGH/CRITICAL CVEs** that no scanner had ever reported, while the contract recorded trivy's coverage as "images and manifests" |
+| `renovate.json` disabled this repository's own images | Which is exactly the `deploy/` bump SC-005 depends on — while a comment in the same file claimed it was what proposed them |
+| `[.. \| .automerge? // empty] \| all(. == false)` | jq's `//` treats `false` as absent, so the array is always empty and `all` on an empty array is `true`. A check that could never fail, inside the checker written to catch checks that can never fail |
+
+The 28 base-image CVEs are now recorded: 15 `deferred` on an upstream rebuild — the pinned digests
+*are* what `python:3.12-slim`, `node:24-alpine` and `nginx-unprivileged:1.29-alpine` resolve to
+today, so there is nothing to bump yet — and 14 `accepted` where Debian has published no fix at all.
+Renovate's `dockerfile` manager is what closes the deferred ones.
+
+Every repaired assertion was then mutation-tested. `automerge: true`, a scanner named in a banner but
+never invoked, the `tags:` block deleted with its comment left behind, and a script writing `VERSION`
+mid-line all turn the contract red.
+
+### The merge, and what it published
+
+```
+release  success   preflight -> publish (flagpole-api | flagpole-consumer | flagpole-web)
+
+flagpole-api         0.1.0 and sha-98972cb -> sha256:94df9c73b0bd617f7d0…
+flagpole-consumer    0.1.0 and sha-98972cb -> sha256:a13e81cc8cb6e0392f5…
+flagpole-web         0.1.0 and sha-98972cb -> sha256:e5e9ffe6e39cd745619…
+
+org.opencontainers.image.revision = 98972cbf019fa100456857147278aea015cc4b94   (= main)
+```
+
+The republish guard, evaluated against the registry as it now stands:
+
+```
+::error file=VERSION::ghcr.io/randaguiac20/flagpole-{api,consumer,web} already published at 0.1.0
+```
+
+And the cluster, which follows `main`, took the postgres change where it actually runs:
+
+```
+✔ applied revision main@sha1:98972cbf…
+flagpole-dev   readOnlyRootFilesystem=true  ready=true
+flagpole-prod  readOnlyRootFilesystem=true  ready=true
+$ kubectl -n flagpole-dev exec postgres-0 -- touch /usr/local/probe
+touch: /usr/local/probe: Read-only file system
+$ scripts/verify-cluster.sh
+43 passed, 0 failed
+```
