@@ -54,7 +54,7 @@ a merged proposal reaches the cluster with no manual step.
 - [X] T021 [US2] Add the republish guard: before building, query the registry for the tag in `VERSION` and fail with "bump VERSION" rather than moving a tag someone may have pulled (research E7)
 - [ ] T022 [US2] Prove FR-004: push a documentation-only commit and show `gh run list` — a `ci` run and no `release` run
 - [ ] T023 [US2] Merge to `main`, watch `release.yml`, and show both tags on `flagpole-api` in the registry plus the `org.opencontainers.image.revision` label matching the commit (SC-004)
-- [ ] T024 [US2] Write `docs/renovate.md`: what each manager covers, why `pre-commit` and `kubernetes` must be enabled explicitly, how the grouping is chosen, and what stays pinned by hand and why
+- [X] T024 [US2] Write `docs/renovate.md`: what each manager covers, why `pre-commit` and `kubernetes` must be enabled explicitly, how the grouping is chosen, and what stays pinned by hand and why
 - [ ] T025 [US2] **User action**: install the Mend Renovate app on `randaguiac20/flagpole` (an account action Claude cannot take). Then show the Dependency Dashboard issue and the first proposals
 - [ ] T026 [US2] Take one proposal through to the cluster: review, merge, `flux reconcile kustomization flagpole-dev --with-source`, `scripts/verify-cluster.sh` — 43 passed, 0 failed (SC-005)
 
@@ -71,13 +71,13 @@ a merged proposal reaches the cluster with no manual step.
 
 ## Phase 6: Polish & cross-cutting
 
-- [ ] T031 [P] Decision record `docs/decisions/ci-github-actions.md` — trigger, alternatives (self-hosted runner, pre-commit only), limits
-- [ ] T032 [P] Decision record `docs/decisions/dependency-updates-renovate.md` — including the honest note that Dependabot would suffice for a repository with only npm and Actions
-- [ ] T033 [P] Decision record `docs/decisions/versioning.md` — the `VERSION` file, and why no release tool
-- [ ] T034 [P] Decision record `docs/decisions/security-scanning.md` — the eight scanners, the thresholds, and why the findings document is the only way past one
-- [ ] T035 [P] Add to `docs/anti-patterns.md`: CodeQL alongside semgrep, SBOM and signing with no consumer, a version-inferring release tool, Flux image automation duplicating Renovate, a nightly scheduled scan
-- [ ] T036 [P] Add to `docs/gotchas.md`: the `workflow` token scope on HTTPS pushes (research E3), `fileMatch` → `managerFilePatterns`, `set -e` hiding seven of eight scanners, `pull_request_target` with a fork's code
-- [ ] T037 Update `docs/walkthrough.md` with the real output of `make scan`, `scripts/check-ci-contract.sh` and one Renovate proposal
+- [X] T031 [P] Decision record `docs/decisions/ci-github-actions.md` — trigger, alternatives (self-hosted runner, pre-commit only), limits
+- [X] T032 [P] Decision record `docs/decisions/dependency-updates-renovate.md` — including the honest note that Dependabot would suffice for a repository with only npm and Actions
+- [X] T033 [P] Decision record `docs/decisions/versioning.md` — the `VERSION` file, and why no release tool
+- [X] T034 [P] Decision record `docs/decisions/security-scanning.md` — the eight scanners, the thresholds, and why the findings document is the only way past one
+- [X] T035 [P] Add to `docs/anti-patterns.md`: CodeQL alongside semgrep, SBOM and signing with no consumer, a version-inferring release tool, Flux image automation duplicating Renovate, a nightly scheduled scan
+- [X] T036 [P] Add to `docs/gotchas.md`: the `workflow` token scope on HTTPS pushes (research E3), `fileMatch` → `managerFilePatterns`, `set -e` hiding seven of eight scanners, `pull_request_target` with a fork's code
+- [X] T037 Update `docs/walkthrough.md` with the real output of `make scan`, `scripts/check-ci-contract.sh` and one Renovate proposal
 - [ ] T038 Run the `code-reviewer` agent over the diff against `.claude/rules/` and this spec; act on what it finds
 - [ ] T039 Run `make test`, `make test-hooks`, `make scan` and `scripts/check-ci-contract.sh` one last time and show the output; then merge to `main`
 

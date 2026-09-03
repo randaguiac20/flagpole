@@ -27,3 +27,16 @@ For every mechanism: the misuse, why it hurts, and what Flagpole does instead. P
 | A registry beside the cluster | `k3d image import` is one command and one fewer component to trust. Feature 006 publishes to ghcr, and the manifests already name the published image. | Images needed by something outside this machine. |
 | Backups of the demo database | The cluster is disposable and says so. A backup nobody restores is theatre. | Data anyone would miss. |
 | Image automation in Flux | Renovate covers it in feature 006, and two mechanisms updating the same tag is a conflict waiting to happen. | Renovate proving insufficient. |
+
+## Feature 006 — CI and security
+
+| Not built | Why | The signal that would change it |
+|---|---|---|
+| CodeQL beside semgrep and bandit | Two SAST tools over ~3k lines of Python and TypeScript produce overlapping findings and a longer triage list. That teaches scanning as a volume exercise, which is the opposite of the lesson. One tool per job. | A language neither covers, or a finding class semgrep provably misses. |
+| SBOM, provenance and image signing | Right for images other people deploy. Here the output would be an artefact nothing consumes, attached to images only this machine pulls. | The first consumer of these images outside this repository. |
+| A Python or Node version matrix | The repository pins one of each and the cluster runs exactly those. A matrix would test configurations that are never deployed and hide the one that is. | Supporting a range, rather than shipping a container. |
+| A coverage threshold and a badge | A percentage is not the guarantee the constitution asks for. "Remove the behaviour and exactly one test fails" is, and no number expresses it. | Nothing yet. A badge is decoration. |
+| A nightly scheduled scan | The scanners run on every change, and Renovate proposes the updates that fix what they find. A nightly run mostly re-reports yesterday's triage into a channel nobody reads. | Long periods with no commits, where a new CVE could sit unnoticed. |
+| A release tool that infers the version | `semantic-release` and friends add a changelog, a tagging step and a bot commit so that a number can be derived from how a commit message was phrased. A person typing one line into `VERSION` is not the hard part of releasing. | Releases frequent enough that typing the number is the bottleneck. |
+| `pull_request_target` | It runs the base workflow, with write access, against a fork's code. That is not a trade-off, it is the documented way to hand a stranger your credentials. | Never. |
+| A deploy job with a kubeconfig | The credential this entire architecture exists to avoid. Publishing an image is where continuous integration stops; Flux takes it from there. | A cluster Flux cannot reach. |
