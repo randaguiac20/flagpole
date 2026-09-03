@@ -55,6 +55,18 @@ spec:
       retries: 3
   values:
     replicaCount: 1
+    # Pinned ABOVE the chart's appVersion on purpose. Chart 0.24.1 ships Dex 2.44.0, whose static
+    # password entries have no groups: `type password storage.Password` in cmd/dex/config.go, and
+    # that struct gained its `Groups []string` field only in 2.45. YAML unmarshalling is not strict,
+    # so `groups:` below was accepted and silently discarded, and passwordDB.Login returned an
+    # identity without groups — every user signed in as a viewer with the whole UI disabled, and
+    # nothing logged a word. docker-compose.dev.yaml has run 2.45.1 since feature 002, which is why
+    # the end-to-end suite passed locally and the cluster was still wrong: two Dex versions, one
+    # config, and only the older one drops the claim the role depends on. Digest-pinned like every
+    # other image here (FR-002); Renovate proposes the bump once a chart ships 2.45.
+    image:
+      tag: v2.45.1
+      digest: sha256:8499afd690c437f52301efd2b05b2455da5bd2dfc20332cd697dc9937f808462
     # The chart sets no security context, and the namespace enforces the restricted standard, so
     # the pod was rejected outright: "violates PodSecurity restricted:latest". That is the standard
     # working — a third party's defaults do not get to lower this cluster's floor (FR-016). The
