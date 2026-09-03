@@ -43,7 +43,7 @@ make bootstrap && make cluster-up && make deploy && make e2e
 | **Tutorial** | `docs/TUTORIAL.md` — the guided course | — | asserted by `scripts/check-tutorial.sh` |
 | Templates | `templates/` — every mechanism, de-Flagpoled, plus a generic `PROMPT.md` | — | `templates/README.md` |
 
-Cross-cutting: `docs/anti-patterns.md` (misuse per mechanism, and what was deliberately not built), `docs/gotchas.md` (57 rows where the docs, the prompt or my own assumption disagreed with what actually happened), `docs/walkthrough.md` (every component fired once, with real output), `docs/BLUEPRINT.md` (rebuild from an empty folder, asserted by `scripts/check-blueprint.sh`), `docs/ports.md`.
+Cross-cutting: `docs/anti-patterns.md` (misuse per mechanism, and what was deliberately not built), `docs/gotchas.md` (59 rows where the docs, the prompt or my own assumption disagreed with what actually happened), `docs/walkthrough.md` (every component fired once, with real output), `docs/BLUEPRINT.md` (rebuild from an empty folder, asserted by `scripts/check-blueprint.sh`), `docs/ports.md`.
 
 ## Architecture
 

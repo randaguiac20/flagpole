@@ -39,7 +39,16 @@ export function App() {
   const [auditFilter, setAuditFilter] = useState("");
   const [nextBefore, setNextBefore] = useState<number | null>(null);
 
+  // Same reason as auditInFlight below, which this was missing: the effect re-runs on sign-in, on
+  // every view switch back to flags, and whenever `api` changes for a token refresh. Two overlapping
+  // listFlags calls resolve in whatever order the network decides, and `setFlags(await …)` takes the
+  // last one to land — so a stale response can overwrite a fresh one. Dropping the second request is
+  // what the audit loader already does; flags simply never got the same treatment.
+  const flagsInFlight = useRef(false);
+
   const loadFlags = useCallback(async () => {
+    if (flagsInFlight.current) return;
+    flagsInFlight.current = true;
     setFlagStatus("loading");
     try {
       setFlags(await api.listFlags());
@@ -47,6 +56,8 @@ export function App() {
     } catch (err) {
       setFlagMessage(err instanceof Error ? err.message : "could not load flags");
       setFlagStatus("error");
+    } finally {
+      flagsInFlight.current = false;
     }
   }, [api]);
 
@@ -79,6 +90,21 @@ export function App() {
 
   useEffect(() => {
     if (status !== "signed-in") return;
+    // Both loaders set their status to "loading" before awaiting, and that transition is required:
+    // coming back to a view whose status is already "ready" would otherwise show the previous data
+    // with no indication that it is being refreshed. It is not a wasted render either — on mount the
+    // value is already "loading", so React bails out.
+    //
+    // The rule's own alternatives do not fit. There is nothing to derive during render, the initial
+    // state is already correct, and "update it from the event" would scatter the transition across
+    // sign-in, view switch, filter change, load-more and two retry buttons — five more places to
+    // forget it, to remove one render.
+    //
+    // The rule also fires arbitrarily here: `loadAudit` on the next line is the same pattern and is
+    // not reported, only because it takes a parameter and oxlint follows zero-argument callbacks
+    // only. Confirmed with a two-callback reproduction. Gotcha #58.
+    //
+    // oxlint-disable-next-line react/set-state-in-effect
     if (view === "flags") void loadFlags();
     else void loadAudit();
   }, [status, view, loadFlags, loadAudit]);

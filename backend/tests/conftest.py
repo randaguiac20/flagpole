@@ -3,6 +3,7 @@
 No network, no auth bypass: the app validates every token; only the key source is swapped.
 """
 
+import os
 import time
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
@@ -167,3 +168,22 @@ async def set_env(
         json={"enabled": enabled, "rollout_percent": rollout},
         headers=headers,
     )
+
+
+# Tests must not depend on whoever ran them. `Settings` is pydantic-settings, so any field NOT
+# passed explicitly falls back to os.environ -- and `.env.example` opens with "Copy to .env",
+# while the Makefile does `-include .env` + `export`. So `make test` handed the suite the
+# developer's whole configuration.
+#
+# The victim was `ungranted_app`, which exists to prove that an UNCONFIGURED operator grant
+# refuses writes: it leaves those fields unset on purpose, the environment filled them in, and
+# the app under test was granted after all. It surfaced the day `make bootstrap` began creating
+# .env, and was always one copied file away for anyone following .env.example's first line.
+# Gotcha #59.
+@pytest.fixture(autouse=True, scope="session")
+def _no_ambient_flagpole_env():
+    saved = {k: v for k, v in os.environ.items() if k.startswith("FLAGPOLE_")}
+    for key in saved:
+        del os.environ[key]
+    yield
+    os.environ.update(saved)

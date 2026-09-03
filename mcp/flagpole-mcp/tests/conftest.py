@@ -6,6 +6,7 @@ no port, no sleeping.
 """
 
 import json
+import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
@@ -164,3 +165,17 @@ def captured_stdout(capsys: pytest.CaptureFixture[str]) -> Iterator[pytest.Captu
 
 
 __all__ = ["Client", "answers", "one_flag_service", "raises", "structured"]
+
+
+# Tests must not depend on whoever ran them. `Settings` is pydantic-settings, so any field NOT
+# passed explicitly falls back to os.environ -- and `.env.example` opens with "Copy to .env",
+# while the Makefile does `-include .env` + `export`. A suite that reads the developer's
+# configuration is testing the machine, not the code. The backend suite was bitten by this;
+# these two share the exposure, so they share the guard. Gotcha #59.
+@pytest.fixture(autouse=True, scope="session")
+def _no_ambient_flagpole_env():
+    saved = {k: v for k, v in os.environ.items() if k.startswith("FLAGPOLE_")}
+    for key in saved:
+        del os.environ[key]
+    yield
+    os.environ.update(saved)

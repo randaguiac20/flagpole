@@ -4,6 +4,7 @@ No network and no sleeping: the flag service is an httpx MockTransport, the cons
 through an ASGITransport, and a timeout is a transport that raises rather than a wait.
 """
 
+import os
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -130,3 +131,17 @@ async def page(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
         transport=httpx.ASGITransport(app=app), base_url="http://consumer.test"
     ) as c:
         yield c
+
+
+# Tests must not depend on whoever ran them. `Settings` is pydantic-settings, so any field NOT
+# passed explicitly falls back to os.environ -- and `.env.example` opens with "Copy to .env",
+# while the Makefile does `-include .env` + `export`. A suite that reads the developer's
+# configuration is testing the machine, not the code. The backend suite was bitten by this;
+# these two share the exposure, so they share the guard. Gotcha #59.
+@pytest.fixture(autouse=True, scope="session")
+def _no_ambient_flagpole_env():
+    saved = {k: v for k, v in os.environ.items() if k.startswith("FLAGPOLE_")}
+    for key in saved:
+        del os.environ[key]
+    yield
+    os.environ.update(saved)
