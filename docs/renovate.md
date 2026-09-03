@@ -36,9 +36,13 @@ pinning: it looks maintained.
 ## How proposals are shaped
 
 - **Non-major updates are grouped** into four changes — language packages, container images,
-  tooling, platform charts — in one window a week (`before 6am on monday`), at most three open at a
-  time. Thirty separate proposals is the same as none, because nobody reads thirty.
-- **Majors arrive alone and unscheduled.** A major is a decision, not a bump.
+  tooling, platform charts — with at most three open at a time and two opened per hour. Thirty
+  separate proposals is the same as none, because nobody reads thirty.
+- **No `schedule`.** There was one (`before 6am on monday`), and the day Renovate was installed it
+  proved to be the wrong control: it delayed every proposal by up to a week while doing nothing the
+  concurrency limit was not already doing. The limit is what keeps the review list short; a window
+  only decides *when* you find out.
+- **Majors arrive alone.** A major is a decision, not a bump.
 - **Nothing merges itself.** `automerge: false`, everywhere, checked by
   `scripts/check-ci-contract.sh`.
 
