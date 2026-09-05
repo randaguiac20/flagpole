@@ -2,7 +2,7 @@
 name = "flagpole-consumer"
 version = "0.1.0"
 description = "Flagpole consumer: one page showing what a flag does for a user. Spec: 003-flagpole-consumer."
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
   "fastapi>=0.141,<1",
   "uvicorn[standard]>=0.34",
