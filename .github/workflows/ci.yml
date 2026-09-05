@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true, version: '0.11.31'}
+        with: {enable-cache: true, version: '0.12.10'}
       # --frozen: the lockfile is honoured, not refreshed. A resolution that happens here and not on
       # the developer's machine is a different test run wearing the same commit.
       - run: uv sync --frozen
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true, version: '0.11.31'}
+        with: {enable-cache: true, version: '0.12.10'}
       - run: uv sync --frozen
         working-directory: consumer
       - run: uv run pytest -q
@@ -94,7 +94,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true, version: '0.11.31'}
+        with: {enable-cache: true, version: '0.12.10'}
       - run: uv sync --frozen
         working-directory: mcp/flagpole-mcp
       - run: uv run pytest -q
@@ -135,7 +135,7 @@ jobs:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with: {version: 2026.8.10}   # mise itself, not just what it installs
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-        with: {enable-cache: true, version: '0.11.31'}
+        with: {enable-cache: true, version: '0.12.10'}
       # The same command as `make scan` locally, with the same tool versions from .mise.toml —
       # which is what makes "the same findings for the same commit" true rather than hoped (FR-013).
       - run: make scan
