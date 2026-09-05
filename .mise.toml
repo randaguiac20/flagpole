@@ -12,10 +12,10 @@ node          = "24.18.0"  # tests and CI. NOT the patch frontend/Dockerfile shi
                            # resolves to 24.20.0. Same major, different patch, and the two are
                            # bumped by different Renovate groups. See gotcha #55 before "fixing"
                            # this by hand — the pins are checked against CI, not against the image.
-uv            = "0.11.31"  # the version backend/Dockerfile copies in
+uv            = "0.12.10"  # the version backend/Dockerfile copies in
 gitleaks      = "8.30.1"
 hadolint      = "2.15.1"
-ruff          = "0.16.5"   # the same version .pre-commit-config.yaml pins
+ruff          = "0.16.6"   # the same version .pre-commit-config.yaml pins
 "osv-scanner" = "2.5.1"
 shellcheck    = "0.11.0"
 trivy         = "0.74.0"
@@ -24,9 +24,9 @@ yq            = "4.53.6"
 # The Python tools come from PyPI through mise's pipx backend, so they are pinned in the same place
 # as everything else rather than in a separate `uv tool install` step nobody re-runs.
 "pipx:bandit"     = "1.9.4"
-"pipx:pre-commit" = "4.6.1"
+"pipx:pre-commit" = "4.6.2"
 "pipx:pip-audit"  = "2.10.1"
-"pipx:semgrep"    = "1.176.0"
+"pipx:semgrep"    = "1.176.1"
 
 # Renovate is NOT pinned here. mise refuses to install it: a transitive dependency
 # (@yarnpkg/libzip@3.2.2) has no provenance attestation where 3.2.0 had one, which mise treats as a
