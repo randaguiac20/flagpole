@@ -2,7 +2,7 @@
 name = "flagpole-api"
 version = "0.1.0"
 description = "Flagpole feature-flag service API. Spec: 001-flagpole-api."
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
   "fastapi>=0.141,<1",
   "uvicorn[standard]>=0.34",
